@@ -16,6 +16,7 @@ def training(net, data_loader, loss_function, epochs, device='cpu', training_los
         net.train() # set model to training
 
         tot_error=0
+        tot_images=0
 
         for batch_idx, data in enumerate(data_loader):
             inputs = data[0][0].to(device)
@@ -36,12 +37,13 @@ def training(net, data_loader, loss_function, epochs, device='cpu', training_los
             optimizer.step()
 
             tot_error+=error*len(labels) # weighted average
+            tot_images+=len(labels)
 
-        mean_error=tot_error/n_images
+            print(f'Epoch {epoch+1}, loss: {tot_error/tot_images:.3g}', end = '\r')
 
-        # print training/validation Accuracy and Loss
-        print(f"train_loss:{mean_error}")
+            training_loss_list.append(error.detach().cpu().numpy())
 
-        training_loss_list.append(mean_error.detach().cpu().numpy())
+        #TODO: improve the printing of the output
+        print(f'Epoch {epoch+1}, loss: {tot_error/tot_images}')
 
     return training_loss_list
