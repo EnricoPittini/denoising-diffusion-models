@@ -7,26 +7,6 @@ def get_alpha_bar(variance_schedule):
     return np.cumprod(1 - np.asarray(variance_schedule))
 
 
-def get_original_image(noisy_image, noise, t, variance_schedule):
-    """Get the original image from the noisy image and the noise.
-
-    Parameters
-    ----------
-    noisy_image : array
-    noise : array
-    t : int
-        timestep
-    variance_schedule : array or array-like
-
-    Returns
-    -------
-    array
-        original image
-    """
-    alpha_t = get_alpha_bar(variance_schedule)[t]
-    return (noisy_image - noise*np.sqrt(1-alpha_t))/np.sqrt(alpha_t)
-
-
 def forward_noise(img, t, alpha_bar, rng=None):
     if rng is None:
         rng = np.random.default_rng()
@@ -80,13 +60,6 @@ class DiffusionDataset(torch.utils.data.Dataset):
             img = self.transform(img)
 
         t = self.rng.integers(self.T)
-        """noise = self.rng.standard_normal(img.shape, dtype=np.float32)
-
-        l1 = np.sqrt(self.alpha_t[t])
-        l2 = np.sqrt(1 - self.alpha_t[t])
-
-        return (l1*img + l2*noise, t), noise"""
-
         return forward_noise(img, t, self.alpha_bar, self.rng)
 
     def __len__(self):
