@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from utils.encodings import pos_encoding
 
+
 class SecondModelSum(nn.Module):
     """Basic UNet diffusion model with ResNet layers
     and positional encoding for the timestep.
@@ -46,7 +47,6 @@ class SecondModelSum(nn.Module):
 
         # final convolution layer
         self.cf = nn.Conv2d(in_channels=block_channels[0], out_channels=img_depth, kernel_size=3, padding=1, device=device)
-
 
     def forward(self, x, t):
         X = []
@@ -147,15 +147,14 @@ class SecondModelConcat(nn.Module):
         # final convolution layer
         self.cf = nn.Conv2d(in_channels=block_channels[0], out_channels=img_depth, kernel_size=3, padding=1, device=device)
 
-
     def forward(self, x, t):
         X = []
 
         x = self.ci(x)
         x = F.relu(x)
 
-        tp = pos_encoding(t=t, channels=self.temp_encoding_initial_channels, spatial_dimensions=x.shape[-2:], 
-                          device=self.device)
+        tp = pos_encoding(t=t, channels=self.temp_encoding_initial_channels,
+                          spatial_dimensions=x.shape[-2:], device=self.device)
         x = torch.cat([x, tp], dim=1)
         X.append(x)
 
@@ -167,8 +166,6 @@ class SecondModelConcat(nn.Module):
             x = c2(x)
             x = bn2(x)
             x = F.relu(x)
-
-            x = x + pos_encoding(t=t, channels=x.shape[1], spatial_dimensions=x.shape[-2:], device=self.device)
 
             X.append(x)
 
@@ -189,8 +186,6 @@ class SecondModelConcat(nn.Module):
             x = c2(torch.concat([x,X[-i-2]],1))
             x = bn2(x)
             x = F.relu(x)
-
-            x = x + pos_encoding(t=t, channels=x.shape[1], spatial_dimensions=x.shape[-2:], device=self.device)
 
         x = self.cf(x)
         return x
