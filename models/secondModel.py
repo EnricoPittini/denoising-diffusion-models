@@ -13,9 +13,9 @@ class SecondModelSum(nn.Module):
         img_depth = img_shape[-3]
         self.device = device
 
-        self.D_blocks = []                      # downsampling blocks
-        self.R_blocks = []                      # ResNet blocks
-        self.U_blocks = []                      # upsampling blocks
+        self.D_blocks = nn.ModuleList()                      # downsampling blocks
+        self.R_blocks = nn.ModuleList()                      # ResNet blocks
+        self.U_blocks = nn.ModuleList()                      # upsampling blocks
         self.block_channels = block_channels    # for summing with positional encoding of t
 
         # initial convolution layer
@@ -99,7 +99,7 @@ class SecondModelConcat(nn.Module):
     """Basic UNet diffusion model with ResNet layers
     and positional encoding for the timestep.
     """
-    def __init__(self, img_shape, device='cpu', res_blocks=3, temp_encoding_initial_channels=10, 
+    def __init__(self, img_shape, device='cpu', res_blocks=3, temp_encoding_initial_channels=10,
                  block_channels=[32, 64, 128, 256, 512]):
         if temp_encoding_initial_channels>block_channels[0]:
             raise ValueError('`temp_encoding_initial_channels` must be smaller than `block_channels[0]s`')
@@ -108,9 +108,9 @@ class SecondModelConcat(nn.Module):
         img_depth = img_shape[-3]
         self.device = device
 
-        self.D_blocks = []                      # downsampling blocks
-        self.R_blocks = []                      # ResNet blocks
-        self.U_blocks = []                      # upsampling blocks
+        self.D_blocks = nn.ModuleList()                      # downsampling blocks
+        self.R_blocks = nn.ModuleList()                      # ResNet blocks
+        self.U_blocks = nn.ModuleList()                      # upsampling blocks
         self.block_channels = block_channels    # for summing with positional encoding of t
 
         self.temp_encoding_initial_channels = temp_encoding_initial_channels
@@ -126,7 +126,7 @@ class SecondModelConcat(nn.Module):
             bn1 = nn.BatchNorm2d(num_features=block_channels[i+1], device=device)
             c2 = nn.Conv2d(in_channels=block_channels[i+1], out_channels=block_channels[i+1], kernel_size=3, padding=1, device=device)
             bn2 = nn.BatchNorm2d(num_features=block_channels[i+1], device=device)
-            self.D_blocks.append((c1,bn1,c2,bn2))
+            self.D_blocks.append(nn.ModuleList((c1,bn1,c2,bn2)))
 
         # ResNet
         for i in range(res_blocks):
@@ -134,7 +134,7 @@ class SecondModelConcat(nn.Module):
             bn1 = nn.BatchNorm2d(num_features=block_channels[-1], device=device)
             c2 = nn.Conv2d(in_channels=block_channels[-1], out_channels=block_channels[-1], kernel_size=3, padding=1, device=device)
             bn2 = nn.BatchNorm2d(num_features=block_channels[-1], device=device)
-            self.R_blocks.append((c1,bn1,c2,bn2))
+            self.R_blocks.append(nn.ModuleList((c1,bn1,c2,bn2)))
 
         # upsampling
         for i in reversed(range(len(block_channels)-1)):
@@ -142,7 +142,7 @@ class SecondModelConcat(nn.Module):
             bn1 = nn.BatchNorm2d(num_features=block_channels[i], device=device)
             c2 = nn.Conv2d(in_channels=block_channels[i+1], out_channels=block_channels[i], kernel_size=3, padding=1, device=device)
             bn2 = nn.BatchNorm2d(num_features=block_channels[i], device=device)
-            self.U_blocks.append((c1,bn1,c2,bn2))
+            self.U_blocks.append(nn.ModuleList((c1,bn1,c2,bn2)))
 
         # final convolution layer
         self.cf = nn.Conv2d(in_channels=block_channels[0], out_channels=img_depth, kernel_size=3, padding=1, device=device)
