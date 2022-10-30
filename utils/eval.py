@@ -1,8 +1,25 @@
+import os
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
 from utils.reconstruction import reconstruct_sequentially, reconstruct_single_step
+
+
+def load_weights(net : torch.nn.Module, checkpoint_filename : str):
+    """Load weights from a checkpoint. The model is automatically set to eval mode.
+
+    Parameters
+    ----------
+    net : torch.nn.Module
+    checkpoint_filename : str
+    """
+    if not os.path.exists(checkpoint_filename):
+        raise FileNotFoundError(f"The file {checkpoint_filename} does not exist.")
+
+    checkpoint = torch.load(checkpoint_filename)
+    net.load_state_dict(checkpoint['model_state_dict'])
+    net.eval()
 
 
 def _visualize_images(original_image, noisy_image, rec_sequential, rec_single_step, t=None):
