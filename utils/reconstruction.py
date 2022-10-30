@@ -49,6 +49,9 @@ def reconstruct_single_step(net, noisy_image, t, variance_schedule, device=None)
     """
     if device is None:
         device = torch.device('cpu')
+    net.to(device)
+
+    net.eval()      # set net to evaluation mode
 
     noisy_image_batch = torch.Tensor(noisy_image).reshape(1, *noisy_image.shape)
     t_batch = torch.Tensor([t])
@@ -96,9 +99,12 @@ def reconstruct_sequentially(net, noisy_image, t, variance_schedule, device=None
     """
     if device is None:
         device = torch.device('cpu')
+    net.to(device)
 
     if sigma is None:
         sigma = np.zeros(t)
+
+    net.eval()      # set net to evaluation mode
 
     with torch.no_grad():
         beta = torch.Tensor(variance_schedule).to(device)
@@ -113,6 +119,7 @@ def reconstruct_sequentially(net, noisy_image, t, variance_schedule, device=None
             t_tensor = torch.Tensor([ti]).to(device)
             pred_noise = net(x, t_tensor)
             x = (x - pred_noise*beta[ti]/torch.sqrt(1-alpha_bar[ti]))/torch.sqrt(1-beta[ti]) + sigma[ti]*torch.randn(x.shape).to(device)
+            torch.cuda.empty_cache()
         del t_tensor
 
         print('Sampling done.')
