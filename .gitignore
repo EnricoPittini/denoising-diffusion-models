@@ -4,6 +4,7 @@ weights
 checkpoints
 datasets
 test_pictures
+result_pictures
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
