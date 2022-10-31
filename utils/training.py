@@ -1,4 +1,5 @@
 import os
+import time
 import torch
 import torch.utils.data
 import torch.optim as optim
@@ -110,7 +111,8 @@ def train_model(net : torch.nn.Module,
                 additional_info : dict = {},
                 checkpoint_step : int = 1,
                 clear_previous_checkpoints=True,
-                keep_best=True):
+                keep_best=True,
+                verbose=False):
     """Training loop.
 
     Parameters
@@ -137,6 +139,8 @@ def train_model(net : torch.nn.Module,
     keep_best : bool, optional
         if set to True, keeps also the checkpoint with the best loss. Has an effect only if
         ``clear_previous_checkpoints`` is set to True.
+    verbose : bool, optional
+        if true, prints each time chekpoints are created.
 
     Returns
     -------
@@ -169,16 +173,18 @@ def train_model(net : torch.nn.Module,
             os.makedirs(checkpoint_folder)
             print(f"Created checkpoint folder {checkpoint_folder}")
 
-    print(f"Starting epoch: {starting_epoch+1}")
+    if not verbose: print(" ")
 
     # -------------------- TRAINING -------------------- #
     net.train()         # set model to training mode
-
     # loop for every epoch (training + evaluation)
     for i, epoch in enumerate(range(starting_epoch, epochs+starting_epoch)):
-        print(" ")
+        if verbose: print(" ")
+        print(f'Epoch: {epoch+1}/{epochs+starting_epoch}')
+
         tot_error=0
         tot_images=0
+        start_time = time.time()
 
         for batch_idx, data in enumerate(data_loader):
             inputs = data[0][0].to(device)
@@ -203,9 +209,12 @@ def train_model(net : torch.nn.Module,
 
             mse_loss = tot_error/tot_images
 
-            print(f'Epoch: {epoch+1}, loss: {mse_loss:.3g}', end = '\r')
+            epoch_time = time.time() - start_time
+            batch_time = epoch_time/(batch_idx+1)
 
-        print(f'Epoch: {epoch+1}, loss: {mse_loss:.3g}')
+            print(f'{batch_idx+1}/{len(data_loader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80), end = '\r')
+
+        print(f'{batch_idx+1}/{len(data_loader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80))
         mse_loss_np = (mse_loss).detach().cpu().numpy()
         loss_history.append(mse_loss_np)
 
@@ -229,12 +238,12 @@ def train_model(net : torch.nn.Module,
                 filepath = os.path.join(checkpoint_folder, filename)
                 torch.save(checkpoint_dict, filepath)
 
-                print(f"Checkpoint saved: {filepath}.")
+                if verbose: print(f"Checkpoint saved: {filepath}.")
 
                 if clear_previous_checkpoints:
                     _clear_checkpoint_folder(checkpoint_folder, keep_best)
-                    print('Cleared previous checkpoints.')
+                    if verbose: print('Cleared previous checkpoints.')
 
-    print('Training done.')
+    print('\nTraining done.')
 
     return checkpoint_dict
