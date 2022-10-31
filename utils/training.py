@@ -85,6 +85,21 @@ def load_checkpoint(checkpoint_folder : str,
     return epoch, net, optimizer, loss_history, additional_info
 
 
+def _clear_checkpoint_folder(checkpoint_folder, keep_best):
+    checkpoints = os.listdir(checkpoint_folder)
+
+    best_found = '_best' in checkpoints[-1]
+
+    for c in reversed(checkpoints[:-1]):
+        if best_found:
+            os.remove(os.path.join(checkpoint_folder, c))
+        else:
+            if '_best' in c and keep_best:
+                best_found = True
+            else:
+                os.remove(os.path.join(checkpoint_folder, c))
+
+
 def train_model(net : torch.nn.Module,
                 data_loader : torch.utils.data.DataLoader,
                 loss_function : torch.nn.Module,
@@ -94,7 +109,8 @@ def train_model(net : torch.nn.Module,
                 checkpoint_folder : str = None,
                 additional_info : dict = {},
                 checkpoint_step : int = 1,
-                keep_previous_checkpoints=True):
+                clear_previous_checkpoints=True,
+                keep_best=True):
     """Training loop.
 
     Parameters
@@ -115,9 +131,12 @@ def train_model(net : torch.nn.Module,
         additional info to save alongside the checkpoint information.
     checkpoint_step : int, optional
         every how many epochs a checkpoint is created, by default 1.
-    keep_previous_checkpoints : bool, optional
-        if set to True, the previous checkpoints are kept. The epoch number is appended at the end
-        of the filename provided by ``checkpoint_filename``. By default True.
+    clear_previous_checkpoints : bool, optional
+        if set to True, the previous checkpoints are deleted. The epoch number is appended at the
+        end of the filename provided by ``checkpoint_filename``. By default False.
+    keep_best : bool, optional
+        if set to True, keeps also the checkpoint with the best loss. Has an effect only if
+        ``clear_previous_checkpoints`` is set to True.
 
     Returns
     -------
@@ -157,6 +176,7 @@ def train_model(net : torch.nn.Module,
 
     # loop for every epoch (training + evaluation)
     for i, epoch in enumerate(range(starting_epoch, epochs+starting_epoch)):
+        print(" ")
         tot_error=0
         tot_images=0
 
@@ -186,7 +206,8 @@ def train_model(net : torch.nn.Module,
             print(f'Epoch: {epoch+1}, loss: {mse_loss:.3g}', end = '\r')
 
         print(f'Epoch: {epoch+1}, loss: {mse_loss:.3g}')
-        loss_history.append((mse_loss).detach().cpu().numpy())
+        mse_loss_np = (mse_loss).detach().cpu().numpy()
+        loss_history.append(mse_loss_np)
 
         # create checkpoint dictionary
         if i%checkpoint_step == 0:
@@ -198,14 +219,22 @@ def train_model(net : torch.nn.Module,
 
             # save checkpoint dict if filename is provided
             if save_checkpoints:
-                filename = 'checkpoint'
-                if keep_previous_checkpoints:
-                    filename += '_' + f"{epoch+1}".zfill(4)
-                filename += '.ckpt'
+                filename = 'checkpoint_' + f"{epoch+1}".zfill(4)
 
+                # put best flag
+                if mse_loss_np == min(loss_history):
+                    filename += '_best'
+
+                filename += '.ckpt'
                 filepath = os.path.join(checkpoint_folder, filename)
                 torch.save(checkpoint_dict, filepath)
+
                 print(f"Checkpoint saved: {filepath}.")
+
+                if clear_previous_checkpoints:
+                    _clear_checkpoint_folder(checkpoint_folder, keep_best)
+                    print('Cleared previous checkpoints.')
+
     print('Training done.')
 
     return checkpoint_dict
