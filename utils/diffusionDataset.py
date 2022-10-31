@@ -59,7 +59,7 @@ class DiffusionDataset(torch.utils.data.Dataset):
         if self.transform:
             img = self.transform(img)
 
-        t = self.rng.integers(self.T)
+        t = self.rng.integers(1, self.T)
         return forward_noise(img, t, self.alpha_bar, self.rng)
 
     def __len__(self):
