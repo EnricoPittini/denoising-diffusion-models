@@ -87,7 +87,6 @@ def reconstruct_step(net, noisy_image, t, step, variance_schedule, device=None, 
     net.eval()      # set net to evaluation mode
 
     with torch.no_grad():
-        beta = torch.Tensor(variance_schedule).to(device)
         alpha_bar = torch.Tensor(get_alpha_bar(variance_schedule)).to(device)
         sigma = torch.Tensor(sigma).to(device)
 
@@ -101,43 +100,7 @@ def reconstruct_step(net, noisy_image, t, step, variance_schedule, device=None, 
             pred_noise = net(x, t_tensor)
 
             f = alpha_bar[ti]/alpha_bar[ti-step]
-            x = (x - pred_noise*torch.sqrt(1-f))/torch.sqrt(f) + sigma[ti]*torch.randn(x.shape).to(device)
-            torch.cuda.empty_cache()
-        del t_tensor
-
-        print('Sampling done.')
-    return x.detach().cpu().numpy()[0].clip(0, 1)
-
-
-def reconstruct_step_wrong(net, noisy_image, t, step, variance_schedule, device=None, sigma=None):
-    if device is None:
-        device = torch.device('cpu')
-    net.to(device)
-
-    if sigma is None:
-        sigma = np.zeros(t)
-
-    if not hasattr(sigma, "__getitem__"):
-        sigma = np.ones(t) * sigma
-
-    net.eval()      # set net to evaluation mode
-
-    with torch.no_grad():
-        beta = torch.Tensor(variance_schedule).to(device)
-        alpha_bar = torch.Tensor(get_alpha_bar(variance_schedule)).to(device)
-        sigma = torch.Tensor(sigma).to(device)
-
-        x = torch.Tensor(noisy_image.reshape(1, *noisy_image.shape)).to(device)
-
-        print(f'T start = {t}')
-        for i in reversed(range(1, t//step)):
-            ti = i*step
-            print(f'Sampling: t={ti}'.ljust(50), end = '\r')
-            t_tensor = torch.Tensor([ti]).to(device)
-            pred_noise = net(x, t_tensor)
-
-            f = alpha_bar[ti]/alpha_bar[ti-step]
-            x = (x - pred_noise*torch.sqrt(1-alpha_bar[t]/alpha_bar[ti-step]))/torch.sqrt(f) + sigma[ti]*torch.randn(x.shape).to(device)
+            x = (x - pred_noise*(1-f)/torch.sqrt(1-alpha_bar[ti]))/torch.sqrt(f) + sigma[ti]*torch.randn(x.shape).to(device)
             torch.cuda.empty_cache()
         del t_tensor
 
