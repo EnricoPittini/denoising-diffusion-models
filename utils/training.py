@@ -162,6 +162,8 @@ def train_model(net : torch.nn.Module,
     starting_epoch = 0
     loss_history = []
 
+    scaler=torch.cuda.amp.GradScaler()
+
     # resume from previous checkpoint
     if checkpoint_folder is not None:
         if os.path.exists(checkpoint_folder):
@@ -191,18 +193,25 @@ def train_model(net : torch.nn.Module,
             t = data[0][1].to(device)
             labels = data[1].to(device)
 
-            # Compute prediction (forward input in the model)
-            outputs = net(inputs, t)
+            optimizer.zero_grad()
 
-            # Compute prediction error with the loss function
-            error = loss_function(outputs, labels)
+            with torch.autocast(device_type='cuda', dtype=torch.float16):
+                
+                # Compute prediction (forward input in the model)
+                outputs = net(inputs, t)
+
+                # Compute prediction error with the loss function
+                error = loss_function(outputs, labels)
 
             # Backpropagation
-            net.zero_grad()
-            error.backward()
+            #net.zero_grad()
+            #error.backward()
+            scaler.scale(error).backward()
 
             # Optimizer step
-            optimizer.step()
+            #optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
 
             tot_error += error*len(labels)      # weighted average
             tot_images += len(labels)
