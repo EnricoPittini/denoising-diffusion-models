@@ -18,6 +18,16 @@ def forward_noise(img, t, alpha_bar, rng=None):
     return (l1*img + l2*noise, t), noise
 
 
+class ShuffleColorsTransform:
+    def __init__(self, n_channels=3, seed=None):
+        self.rng = np.random.default_rng(seed)
+        self.p = np.arange(n_channels)
+
+    def __call__(self, x):
+        self.rng.shuffle(self.p)
+        return x[self.p]
+
+
 class DiffusionDataset(torch.utils.data.Dataset):
     """Custom Dataset for generating noisy images for
     the forward diffusion process,
@@ -36,6 +46,8 @@ class DiffusionDataset(torch.utils.data.Dataset):
     transform : torchvision.transforms.Transform, optional
     random_seed : optional
         random seed to be passed to the numpy random number generator.
+    *args, **kwargs
+        ``passed to torch.utils.data.Dataset``.
     """
 
     def __init__(self, data, variance_schedule=None, alpha_bar=None, transform=None, random_seed=None, *args, **kwargs):
@@ -64,46 +76,3 @@ class DiffusionDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.data)
-
-
-class DiffusionDataLoader(torch.utils.data.DataLoader):
-    """Custom DataLoader for also sampling the timestep.
-    Maybe not needed, let's see.
-    """
-    def __init__(self, timestep_batching_function, timestep_batch_size, variance_schedule, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.timestep_batching_function = timestep_batching_function
-        self.timestep_batch_size = timestep_batch_size
-        self.variance_schedule = variance_schedule
-        self.alpha_t = np.cumprod(1-variance_schedule)
-        print()
-
-    def __forward_noise(self, image_batch, timestep_batch):
-        extended_image_batch = np.concatenate([image_batch for i in range(self.timestep_batch_size)])
-        print(extended_image_batch.shape)
-        noisy_image_batch = np.zeros(extended_image_batch.shape)
-
-        for i, t in enumerate(timestep_batch):        # add noise to image batch
-            alpha_t = self.alpha_t[t]
-            loc = np.sqrt(alpha_t)*image_batch
-            scale = np.sqrt(1-alpha_t)
-
-            start_index = i*self.timestep_batch_size
-            end_index = start_index + self.batch_size
-            noisy_image_batch[start_index:end_index] = np.random.normal(loc=loc, scale=scale, size=image_batch.shape)
-
-        extended_image_batch = torch.tensor(extended_image_batch)
-        noisy_image_batch = torch.tensor(noisy_image_batch)
-
-        return extended_image_batch, noisy_image_batch
-
-    def __iter__(self):
-        def augment_iter(old_iter):
-            for image_batch, _ in old_iter:
-
-                timestep_batch = self.timestep_batching_function(self.timestep_batch_size)
-
-                extended_image_batch, noisy_image_batch = self.__forward_noise(image_batch, timestep_batch)
-                yield noisy_image_batch, extended_image_batch, timestep_batch
-
-        return augment_iter(super().__iter__())
