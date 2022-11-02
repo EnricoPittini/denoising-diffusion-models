@@ -27,7 +27,7 @@ class SecondModelSum(nn.Module):
             bn1 = nn.BatchNorm2d(num_features=block_channels[i+1], device=device)
             c2 = nn.Conv2d(in_channels=block_channels[i+1], out_channels=block_channels[i+1], kernel_size=3, padding=1, device=device)
             bn2 = nn.BatchNorm2d(num_features=block_channels[i+1], device=device)
-            self.D_blocks.append((c1,bn1,c2,bn2))
+            self.D_blocks.append(nn.ModuleList((c1,bn1,c2,bn2)))
 
         # ResNet
         for i in range(res_blocks):
@@ -35,7 +35,7 @@ class SecondModelSum(nn.Module):
             bn1 = nn.BatchNorm2d(num_features=block_channels[-1], device=device)
             c2 = nn.Conv2d(in_channels=block_channels[-1], out_channels=block_channels[-1], kernel_size=3, padding=1, device=device)
             bn2 = nn.BatchNorm2d(num_features=block_channels[-1], device=device)
-            self.R_blocks.append((c1,bn1,c2,bn2))
+            self.R_blocks.append(nn.ModuleList((c1,bn1,c2,bn2)))
 
         # upsampling
         for i in reversed(range(len(block_channels)-1)):
@@ -43,7 +43,7 @@ class SecondModelSum(nn.Module):
             bn1 = nn.BatchNorm2d(num_features=block_channels[i], device=device)
             c2 = nn.Conv2d(in_channels=block_channels[i+1], out_channels=block_channels[i], kernel_size=3, padding=1, device=device)
             bn2 = nn.BatchNorm2d(num_features=block_channels[i], device=device)
-            self.U_blocks.append((c1,bn1,c2,bn2))
+            self.U_blocks.append(nn.ModuleList((c1,bn1,c2,bn2)))
 
         # final convolution layer
         self.cf = nn.Conv2d(in_channels=block_channels[0], out_channels=img_depth, kernel_size=3, padding=1, device=device)
@@ -451,9 +451,8 @@ class SecondModelConcatFixed(nn.Module):
         X.append(x)
 
         for c1, bn1, c2, bn2 in self.D_blocks:
-            
             x=torch.nn.functional.max_pool2d(x, 2)
-            
+
             x = c1(x)
             x = bn1(x)
             x = F.relu(x)
@@ -474,7 +473,6 @@ class SecondModelConcatFixed(nn.Module):
             x = F.relu(xr)
 
         for i, (c1, bn1, c2, bn2) in enumerate(self.U_blocks):
-            
             x = c1(x)
             x = bn1(x)
             x = F.relu(x)
