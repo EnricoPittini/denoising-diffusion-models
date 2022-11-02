@@ -1,5 +1,7 @@
 import os
 import time
+import numpy as np
+
 import torch
 import torch.utils.data
 import torch.optim as optim
@@ -71,7 +73,7 @@ def load_checkpoint(checkpoint_folder : str,
         print(f"No checkpoint found in {checkpoint_folder}, using default initialization.")
         return None
 
-    filename = os.listdir(checkpoint_folder)[-1]
+    filename = [i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv'][-1]
     filepath = os.path.join(checkpoint_folder, filename)
 
     print(f"Loading checkpoint: {filepath}")
@@ -87,7 +89,7 @@ def load_checkpoint(checkpoint_folder : str,
 
 
 def _clear_checkpoint_folder(checkpoint_folder, keep_best):
-    checkpoints = os.listdir(checkpoint_folder)
+    checkpoints = [i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv']
 
     best_found = '_best' in checkpoints[-1]
 
@@ -246,6 +248,9 @@ def train_model(net : torch.nn.Module,
                 filename += '.ckpt'
                 filepath = os.path.join(checkpoint_folder, filename)
                 torch.save(checkpoint_dict, filepath)
+
+                # save loss histoyy
+                np.savetxt(os.path.join(checkpoint_folder, 'loss_history.csv'), loss_history, delimiter=',')
 
                 if verbose: print(f"Checkpoint saved: {filepath}.")
 
