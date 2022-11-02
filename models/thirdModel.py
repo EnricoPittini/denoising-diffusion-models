@@ -4,10 +4,15 @@ import torch.nn.functional as F
 from utils.encodings import pos_encoding
 from einops import rearrange
 
+"""https://huggingface.co/blog/annotated-diffusion"""
 
-class LinearAttentionV1(nn.Module):
-    """Linear attention module for CNN, as implemented in 
+
+class LinearAttention(nn.Module):
+    """Linear attention module for CNN, as implemented in
     https://github.com/lucidrains/denoising-diffusion-pytorch/blob/main/denoising_diffusion_pytorch/denoising_diffusion_pytorch.py
+
+    This version is more efficient than standard attention, because its time and memory requirements
+    scale linearly with the input size rahter than quadratically.
     """
     def __init__(self, dim, heads = 4, dim_head = 32):
         super().__init__()
@@ -18,7 +23,7 @@ class LinearAttentionV1(nn.Module):
 
         self.to_out = nn.Sequential(
             nn.Conv2d(hidden_dim, dim, 1),
-            nn.LayerNorm(dim)
+            nn.BatchNorm2d(dim)
         )
 
     def forward(self, x):
@@ -41,8 +46,8 @@ class LinearAttentionV1(nn.Module):
         return self.to_out(out)
 
 
-class LinearAttentionV2(nn.Module):
-    """Linear attention module for CNN, with an implementation more compliant with the one of the paper 
+class Attention(nn.Module):
+    """Standard attention module for CNN, with an implementation more compliant with the one of the paper
     'Attention is all you need'
     """
     def __init__(self, dim, heads = 4, dim_head = 32):
@@ -54,7 +59,7 @@ class LinearAttentionV2(nn.Module):
 
         self.to_out = nn.Sequential(
             nn.Conv2d(hidden_dim, dim, 1),
-            nn.LayerNorm(dim)
+            nn.BatchNorm2d(dim)
         )
 
     def forward(self, x):
@@ -63,21 +68,21 @@ class LinearAttentionV2(nn.Module):
         q, k, v = map(lambda t: rearrange(t, 'b (h c) x y -> b h c (x y)', h = self.heads), qkv)
 
         q = q * self.scale
-        v = v / (h * w)
+        #v = v / (h * w)
 
         context = torch.einsum('b h d n, b h d m -> b h n m', q, k)  # Dot product between queries and keys
 
-        context = context.softmax(dim=-2)  # Softmax is applied after the dot product
+        context = (context-context.amax(dim=-1)).softmax(dim=-1)  # Softmax is applied after the dot product
 
-        out = torch.einsum('b h n m, b h d m -> b h d n', context, v)
+        out = torch.einsum('b h n m, b h d m -> b h n d', context, v)
 
-        out = rearrange(out, 'b h c (x y) -> b (h c) x y', h = self.heads, x = h, y = w)
+        out = rearrange(out, 'b h (x y) c -> b (h c) x y', h = self.heads, x = h, y = w)
 
         return self.to_out(out)
-        
+
 
 class ThirdModelV1(nn.Module):
-    """UNet diffusion model with ResNet layers, positional encoding for the timestep and attention version 1. 
+    """UNet diffusion model with ResNet layers, positional encoding for the timestep and linear attention.
     The downsampling is fixed to maxpooling and the upsampling is done by bilinear interpolation.
     """
     def __init__(self, img_shape, device='cpu', res_blocks=3, temp_encoding_initial_channels=10, 
@@ -89,9 +94,9 @@ class ThirdModelV1(nn.Module):
         img_depth = img_shape[-3]
         self.device = device
 
-        self.D_blocks = nn.ModuleList()                   # downsampling blocks
-        self.R_blocks = nn.ModuleList()                      # ResNet blocks
-        self.U_blocks = nn.ModuleList()                      # upsampling blocks
+        self.D_blocks = nn.ModuleList()                     # downsampling blocks
+        self.R_blocks = nn.ModuleList()                     # ResNet blocks
+        self.U_blocks = nn.ModuleList()                     # upsampling blocks
         self.block_channels = block_channels    # for summing with positional encoding of t
 
         self.temp_encoding_initial_channels = temp_encoding_initial_channels
@@ -103,12 +108,12 @@ class ThirdModelV1(nn.Module):
 
         # downsampling
         for i in range(len(block_channels)-1):
-            c1 = nn.Conv2d(in_channels=block_channels[i], out_channels=block_channels[i+1], kernel_size=3, padding=1, stride=2, device=device)
+            c1 = nn.Conv2d(in_channels=block_channels[i], out_channels=block_channels[i+1], kernel_size=3, padding=1, device=device)
             bn1 = nn.BatchNorm2d(num_features=block_channels[i+1], device=device)
             c2 = nn.Conv2d(in_channels=block_channels[i+1], out_channels=block_channels[i+1], kernel_size=3, padding=1, device=device)
             bn2 = nn.BatchNorm2d(num_features=block_channels[i+1], device=device)
-            att = LinearAttentionV1(dims=block_channels[i+1])
-            self.D_blocks.append((c1,bn1,c2,bn2,att))
+            att = LinearAttention(dim=block_channels[i+1])
+            self.D_blocks.append(nn.ModuleList((c1,bn1,c2,bn2,att)))
 
         # ResNet
         for i in range(res_blocks):
@@ -116,16 +121,16 @@ class ThirdModelV1(nn.Module):
             bn1 = nn.BatchNorm2d(num_features=block_channels[-1], device=device)
             c2 = nn.Conv2d(in_channels=block_channels[-1], out_channels=block_channels[-1], kernel_size=3, padding=1, device=device)
             bn2 = nn.BatchNorm2d(num_features=block_channels[-1], device=device)
-            self.R_blocks.append((c1,bn1,c2,bn2))
+            self.R_blocks.append(nn.ModuleList((c1,bn1,c2,bn2)))
 
         # upsampling
         for i in reversed(range(len(block_channels)-1)):
-            c1 = nn.ConvTranspose2d(in_channels=block_channels[i+1], out_channels=block_channels[i], kernel_size=2, padding=0, stride=2, device=device)
+            c1 = nn.Conv2d(in_channels=block_channels[i+1], out_channels=block_channels[i], kernel_size=3, padding=1, device=device)
             bn1 = nn.BatchNorm2d(num_features=block_channels[i], device=device)
             c2 = nn.Conv2d(in_channels=block_channels[i+1], out_channels=block_channels[i], kernel_size=3, padding=1, device=device)
             bn2 = nn.BatchNorm2d(num_features=block_channels[i], device=device)
-            att = LinearAttentionV1(dims=block_channels[i])
-            self.U_blocks.append((c1,bn1,c2,bn2,att))
+            att = LinearAttention(dim=block_channels[i])
+            self.U_blocks.append(nn.ModuleList((c1,bn1,c2,bn2,att)))
 
         # final convolution layer
         self.cf = nn.Conv2d(in_channels=block_channels[0], out_channels=img_depth, kernel_size=3, padding=1, device=device)
@@ -184,7 +189,7 @@ class ThirdModelV1(nn.Module):
 
 
 class ThirdModelV2(nn.Module):
-    """UNet diffusion model with ResNet layers, positional encoding for the timestep and attention version 2. 
+    """UNet diffusion model with ResNet layers, positional encoding for the timestep and attention.
     The downsampling is fixed to maxpooling and the upsampling is done by bilinear interpolation.
     """
     def __init__(self, img_shape, device='cpu', res_blocks=3, temp_encoding_initial_channels=10, 
@@ -196,9 +201,9 @@ class ThirdModelV2(nn.Module):
         img_depth = img_shape[-3]
         self.device = device
 
-        self.D_blocks = nn.ModuleList()                   # downsampling blocks
-        self.R_blocks = nn.ModuleList()                      # ResNet blocks
-        self.U_blocks = nn.ModuleList()                      # upsampling blocks
+        self.D_blocks = nn.ModuleList()                     # downsampling blocks
+        self.R_blocks = nn.ModuleList()                     # ResNet blocks
+        self.U_blocks = nn.ModuleList()                     # upsampling blocks
         self.block_channels = block_channels    # for summing with positional encoding of t
 
         self.temp_encoding_initial_channels = temp_encoding_initial_channels
@@ -210,12 +215,12 @@ class ThirdModelV2(nn.Module):
 
         # downsampling
         for i in range(len(block_channels)-1):
-            c1 = nn.Conv2d(in_channels=block_channels[i], out_channels=block_channels[i+1], kernel_size=3, padding=1, stride=2, device=device)
+            c1 = nn.Conv2d(in_channels=block_channels[i], out_channels=block_channels[i+1], kernel_size=3, padding=1, device=device)
             bn1 = nn.BatchNorm2d(num_features=block_channels[i+1], device=device)
             c2 = nn.Conv2d(in_channels=block_channels[i+1], out_channels=block_channels[i+1], kernel_size=3, padding=1, device=device)
             bn2 = nn.BatchNorm2d(num_features=block_channels[i+1], device=device)
-            att = LinearAttentionV2(dims=block_channels[i+1])
-            self.D_blocks.append((c1,bn1,c2,bn2,att))
+            att = Attention(dim=block_channels[i+1])
+            self.D_blocks.append(nn.ModuleList((c1,bn1,c2,bn2,att)))
 
         # ResNet
         for i in range(res_blocks):
@@ -223,16 +228,16 @@ class ThirdModelV2(nn.Module):
             bn1 = nn.BatchNorm2d(num_features=block_channels[-1], device=device)
             c2 = nn.Conv2d(in_channels=block_channels[-1], out_channels=block_channels[-1], kernel_size=3, padding=1, device=device)
             bn2 = nn.BatchNorm2d(num_features=block_channels[-1], device=device)
-            self.R_blocks.append((c1,bn1,c2,bn2))
+            self.R_blocks.append(nn.ModuleList((c1,bn1,c2,bn2)))
 
         # upsampling
         for i in reversed(range(len(block_channels)-1)):
-            c1 = nn.ConvTranspose2d(in_channels=block_channels[i+1], out_channels=block_channels[i], kernel_size=2, padding=0, stride=2, device=device)
+            c1 = nn.Conv2d(in_channels=block_channels[i+1], out_channels=block_channels[i], kernel_size=3, padding=1, device=device)
             bn1 = nn.BatchNorm2d(num_features=block_channels[i], device=device)
             c2 = nn.Conv2d(in_channels=block_channels[i+1], out_channels=block_channels[i], kernel_size=3, padding=1, device=device)
             bn2 = nn.BatchNorm2d(num_features=block_channels[i], device=device)
-            att = LinearAttentionV2(dims=block_channels[i])
-            self.U_blocks.append((c1,bn1,c2,bn2,att))
+            att = Attention(dim=block_channels[i])
+            self.U_blocks.append(nn.ModuleList((c1,bn1,c2,bn2,att)))
 
         # final convolution layer
         self.cf = nn.Conv2d(in_channels=block_channels[0], out_channels=img_depth, kernel_size=3, padding=1, device=device)
