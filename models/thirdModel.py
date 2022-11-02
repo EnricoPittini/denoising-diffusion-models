@@ -72,7 +72,8 @@ class Attention(nn.Module):
 
         context = torch.einsum('b h d n, b h d m -> b h n m', q, k)  # Dot product between queries and keys
 
-        context = (context-context.amax(dim=-1)).softmax(dim=-1)  # Softmax is applied after the dot product
+        #context = (context-context.amax(dim=-1)).softmax(dim=-1)  # Softmax is applied after the dot product
+        context = context.softmax(dim=-1)
 
         out = torch.einsum('b h n m, b h d m -> b h n d', context, v)
 
