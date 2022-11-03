@@ -26,8 +26,8 @@ def create_checkpoint_dict(net : torch.nn.Module,
     -------
     dict
     """
-    additional_info['model'] = type(net)
-    additional_info['optimizer'] = type(optimizer)
+    additional_info['model'] = str(type(net))
+    additional_info['optimizer'] = str(type(optimizer))
 
     return {'epoch': epoch,
             'model_state_dict': net.state_dict(),
@@ -63,7 +63,7 @@ def load_checkpoint_dict(checkpoint_folder : str):
         print(f"No checkpoint found in {checkpoint_folder}, using default initialization.")
         return None
 
-    filename = os.listdir(checkpoint_folder)[-1]
+    filename = [i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv'][-1]
     filepath = os.path.join(checkpoint_folder, filename)
 
     print(f"Loading checkpoint: {filepath}")
