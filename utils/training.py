@@ -37,6 +37,41 @@ def create_checkpoint_dict(net : torch.nn.Module,
            }
 
 
+def load_checkpoint_dict(checkpoint_folder : str):
+    """Load training status from a checkpoint.
+
+    Parameters
+    ----------
+    checkpoint_folder : str
+        folder containing the checkpoint file.
+    net : torch.nn.Module
+    optimizer : torch.optim.Optimizer
+
+    Returns
+    -------
+    dict
+
+    Raises
+    ------
+    FileNotFoundError
+        if ``checkpoint_folder`` does not exist.
+    """
+    if not os.path.exists(checkpoint_folder):
+        raise FileNotFoundError(f"The folder {checkpoint_folder} does not exist.")
+
+    if len(os.listdir(checkpoint_folder)) == 0:
+        print(f"No checkpoint found in {checkpoint_folder}, using default initialization.")
+        return None
+
+    filename = os.listdir(checkpoint_folder)[-1]
+    filepath = os.path.join(checkpoint_folder, filename)
+
+    print(f"Loading checkpoint: {filepath}")
+    checkpoint_dict = torch.load(filepath)
+
+    return checkpoint_dict
+
+
 def load_checkpoint(checkpoint_folder : str,
                     net : torch.nn.Module,
                     optimizer : torch.optim.Optimizer):
@@ -66,18 +101,7 @@ def load_checkpoint(checkpoint_folder : str,
     FileNotFoundError
         if ``checkpoint_folder`` does not exist.
     """
-    if not os.path.exists(checkpoint_folder):
-        raise FileNotFoundError(f"The folder {checkpoint_folder} does not exist.")
-
-    if len(os.listdir(checkpoint_folder)) == 0:
-        print(f"No checkpoint found in {checkpoint_folder}, using default initialization.")
-        return None
-
-    filename = [i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv'][-1]
-    filepath = os.path.join(checkpoint_folder, filename)
-
-    print(f"Loading checkpoint: {filepath}")
-    checkpoint = torch.load(filepath)
+    checkpoint = load_checkpoint_dict(checkpoint_folder)
 
     epoch = checkpoint['epoch']
     net.load_state_dict(checkpoint['model_state_dict'])
