@@ -42,15 +42,17 @@ def save_checkpoint(checkpoint_dict, checkpoint_folder, clear_previous_checkpoin
     filename = 'checkpoint_' + f"{checkpoint_dict['epoch']}".zfill(4)
 
     # put best flag
-    if checkpoint_dict['loss_history'][-1] == min(checkpoint_dict['loss_history']):
+    if checkpoint_dict['loss_history_val'][-1] == min(checkpoint_dict['loss_history_val']):
         filename += '_best'
 
     filename += '.ckpt'
     filepath = os.path.join(checkpoint_folder, filename)
     torch.save(checkpoint_dict, filepath)
 
-    # save loss histoyy
+    # save loss history train
     np.savetxt(os.path.join(checkpoint_folder, 'loss_history.csv'), checkpoint_dict['loss_history'], delimiter=',')
+    # save loss history val
+    np.savetxt(os.path.join(checkpoint_folder, 'loss_history_val.csv'), checkpoint_dict['loss_history'], delimiter=',')
 
     if verbose: print(f"Checkpoint saved: {filepath}.")
 
@@ -60,7 +62,7 @@ def save_checkpoint(checkpoint_dict, checkpoint_folder, clear_previous_checkpoin
 
 
 def _clear_checkpoint_folder(checkpoint_folder, keep_best):
-    checkpoints = [i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv']
+    checkpoints = [i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv' and i != 'loss_history_val.csv']
 
     best_found = '_best' in checkpoints[-1]
 
@@ -100,7 +102,7 @@ def load_checkpoint_dict(checkpoint_folder : str):
         print(f"No checkpoint found in {checkpoint_folder}, using default initialization.")
         return None
 
-    filename = [i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv'][-1]
+    filename = [i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv' and i != 'loss_history_val.csv'][-1]
     filepath = os.path.join(checkpoint_folder, filename)
 
     print(f"Loading checkpoint: {filepath}")
@@ -129,6 +131,7 @@ def load_checkpoint(checkpoint_folder : str,
     optimizer : torch.optim.Optimizer
         the optimizer with the loaded ``state_dict``.
     loss_history : list
+    loss_history_val : list
     additional_info : dict
 
     None if ``checkpoint_folder`` is empty.
@@ -144,9 +147,10 @@ def load_checkpoint(checkpoint_folder : str,
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     loss_history = checkpoint['loss_history']
+    loss_history_val = checkpoint['loss_history_val']
     additional_info = checkpoint['additional_info']
 
-    return epoch, net, optimizer, loss_history, additional_info
+    return epoch, net, optimizer, loss_history, loss_history_val, additional_info
 
 
 def load_weights(net : torch.nn.Module, checkpoint_filename : str):
