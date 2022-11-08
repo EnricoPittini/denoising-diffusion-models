@@ -212,7 +212,7 @@ class ConvNextBlock(nn.Module):
             nn.GroupNorm(1, dim_in, device=device) if norm else nn.Identity(),
             nn.Conv2d(in_channels=dim_in, out_channels=dim_out*mult, kernel_size=3, stride=1, device=device),
             nn.GELU(),
-            nn.GroupNorm(in_channels=1, out_channels=dim_out*mult, device=device),
+            nn.GroupNorm(1, dim_out*mult, device=device),
             nn.Conv2d(in_channels=dim_out*mult, out_channels=dim_out, kernel_size=3, stride=1, device=device),
         )
 
