@@ -7,7 +7,32 @@ import torch.optim as optim
 from utils.storage import *
 
 
-def train_one_epoch(net, data_loader_train, loss_function, optimizer, device, scaler, prefix=''):
+def train_one_epoch(net : torch.nn.Module, 
+                    data_loader_train : torch.utils.data.DataLoader, 
+                    loss_function : torch.nn.Module, 
+                    optimizer : torch.optim.Optimizer = None, 
+                    device : str = 'cpu', 
+                    scaler = torch.cuda.amp.GradScaler(), 
+                    prefix : str = ''):
+    """Train the given model for one epoch, over the given dataset
+
+    Parameters
+    ----------
+    net : torch.nn.Module
+    data_loader_train : torch.utils.data.DataLoader
+    loss_function : torch.nn.Module
+    optimizer : torch.optim.Optimizer, optional
+    device : str, optional
+    scaler : _type_, optional
+    prefix : str, optional
+        String to append at the beginning of the output information, by default ''
+
+    Returns
+    -------
+    loss_train : np.array
+        Single scalar value, representing the computed loss value over the whole dataset in that epoch
+    """
+
     net.train()         # set model to training mode
 
     tot_error=0
@@ -42,20 +67,41 @@ def train_one_epoch(net, data_loader_train, loss_function, optimizer, device, sc
         tot_error += error*len(labels)      # weighted average
         tot_images += len(labels)
 
-        mse_loss = tot_error/tot_images
+        loss = tot_error/tot_images
 
         epoch_time = time.time() - start_time
         batch_time = epoch_time/(batch_idx+1)
 
-        print(prefix + f'{batch_idx+1}/{len(data_loader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80), end = '\r')
+        print(prefix + f'{batch_idx+1}/{len(data_loader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80), end = '\r')
 
-    print(prefix + f'{batch_idx+1}/{len(data_loader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80))
-    mse_loss_np = (mse_loss).detach().cpu().numpy()
+    print(prefix + f'{batch_idx+1}/{len(data_loader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80))
+    loss_np = (loss).detach().cpu().numpy()
 
-    return mse_loss_np
+    return loss_np
 
 
-def validate(net, data_loader_val, loss_function, device, prefix=''):
+def validate(net : torch.nn.Module, 
+             data_loader_val : torch.utils.data.DataLoader, 
+             loss_function : torch.nn.Module, 
+             device : str = 'cpu', 
+             prefix=''):
+    """Evaluate the given model on the given dataset.
+
+    Parameters
+    ----------
+    net : torch.nn.Module
+    data_loader_val : torch.utils.data.DataLoader
+    loss_function : torch.nn.Module
+        Metric to use for the evaluation
+    device : str, optional
+    prefix : str, optional
+        String to append at the beginning of the output information, by default ''
+
+    Returns
+    -------
+    loss_val : np.array
+        Single scalar value, representing the computed loss value over the whole dataset
+    """
     net.eval()         # set model to evaluation mode
 
     tot_error=0
@@ -79,17 +125,17 @@ def validate(net, data_loader_val, loss_function, device, prefix=''):
             tot_error += error*len(labels)      # weighted average
             tot_images += len(labels)
 
-            mse_loss = tot_error/tot_images
+            loss = tot_error/tot_images
 
             epoch_time = time.time() - start_time
             batch_time = epoch_time/(batch_idx+1)
 
-            print(prefix + f'{batch_idx+1}/{len(data_loader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80), end = '\r')
+            print(prefix + f'{batch_idx+1}/{len(data_loader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80), end = '\r')
 
-    print(prefix + f'{batch_idx+1}/{len(data_loader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80))
-    mse_loss_np = (mse_loss).detach().cpu().numpy()
+    print(prefix + f'{batch_idx+1}/{len(data_loader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80))
+    loss_np = (loss).detach().cpu().numpy()
 
-    return mse_loss_np
+    return loss_np
 
 
 def train_model(net : torch.nn.Module,
@@ -177,6 +223,7 @@ def train_model(net : torch.nn.Module,
         if verbose: print(" ")
         print(f'Epoch: {epoch+1}/{epochs+starting_epoch}')
 
+        # Training epoch
         train_loss = train_one_epoch(net=net, 
                                       data_loader_train=data_loader_train, 
                                       loss_function=loss_function, 
@@ -186,6 +233,7 @@ def train_model(net : torch.nn.Module,
                                       prefix='\tTrain ')
         loss_history_train.append(train_loss)
 
+        # Validation 
         val_loss = validate(net=net, 
                             data_loader_val=data_loader_val, 
                             loss_function=loss_function, 
