@@ -173,28 +173,7 @@ class ResnetBlock(nn.Module):
         h = self.block2(h)  # Second block
         return h + self.res_conv(x)  # Skip connection
     
-class ConvNextBlock(nn.Module):
-    """ConvNextBlock block. https://arxiv.org/abs/2201.03545
-
-    The number of channels changes, while the spatial dimensions stay unchanced.
-
-    This block takes in input both the image tensor `x` and the emnbedded timestep `t`, appropriately combining them (sum).
-
-    The blocks `ResnetBlock` and `ConvNextBlock` are used in alternative.
-
-    Parameters
-    ----------
-    dim_in : int
-        Number of input channels
-    dim_out : int
-        Number of output channels
-    time_emb_dim : int
-        Number of channels/dimensions of the timestep embedding
-    mult : int
-        Number of groups for the Group normalization
-    norm : bool
-    device : str
-    """    
+"""class ConvNextBlock(nn.Module):
     def __init__(self, dim_in, dim_out, *, time_emb_dim=None, mult=2, norm=True, device='cpu'):
         super().__init__()
 
@@ -217,6 +196,63 @@ class ConvNextBlock(nn.Module):
         )
 
         self.res_conv = nn.Conv2d(dim_in, dim_out, kernel_size=1, device=device) if dim_in != dim_out else nn.Identity()
+        
+    def forward(self, x, time_emb=None):
+        h = self.ds_conv(x)
+
+        if exists(self.mlp) and exists(time_emb):
+            condition = self.mlp(time_emb)
+            h = h + rearrange(condition, "b c -> b c 1 1")
+
+        h = self.net(h)
+        return h + self.res_conv(x)"""
+
+
+class ConvNextBlock(nn.Module):
+    """ConvNextBlock block. https://arxiv.org/abs/2201.03545
+
+        The number of channels changes, while the spatial dimensions stay unchanced.
+
+        This block takes in input both the image tensor `x` and the emnbedded timestep `t`, appropriately combining them (sum).
+
+        The blocks `ResnetBlock` and `ConvNextBlock` are used in alternative.
+
+        Parameters
+        ----------
+        dim_in : int
+            Number of input channels
+        dim_out : int
+            Number of output channels
+        time_emb_dim : int
+            Number of channels/dimensions of the timestep embedding
+        mult : int
+            Number of groups for the Group normalization
+        norm : bool
+        device : str
+    """  
+
+    def __init__(self, dim, dim_out, *, time_emb_dim=None, mult=2, norm=True, device='cpu'):
+        super().__init__()
+
+        # Multi-Layer Perceptron for processing the time embedding and making its dimensions compliant with the image output
+        # channels
+        self.mlp = (
+            nn.Sequential(nn.GELU(), nn.Linear(time_emb_dim, dim, device='cpu'))
+            if exists(time_emb_dim)
+            else None
+        )
+
+        self.ds_conv = nn.Conv2d(dim, dim, 7, padding=3, groups=dim, device='cpu')
+
+        self.net = nn.Sequential(
+            nn.GroupNorm(1, dim, device=device) if norm else nn.Identity(),
+            nn.Conv2d(dim, dim_out * mult, 3, padding=1, device=device),
+            nn.GELU(),
+            nn.GroupNorm(1, dim_out * mult, device=device),
+            nn.Conv2d(dim_out * mult, dim_out, 3, padding=1, device=device),
+        )
+
+        self.res_conv = nn.Conv2d(dim, dim_out, 1, device=device) if dim != dim_out else nn.Identity()
 
     def forward(self, x, time_emb=None):
         h = self.ds_conv(x)
@@ -227,6 +263,7 @@ class ConvNextBlock(nn.Module):
 
         h = self.net(h)
         return h + self.res_conv(x)
+
 
 class Attention(nn.Module):
     """Block implementing the regular multi-head self-attention (as used in the Transformer).
