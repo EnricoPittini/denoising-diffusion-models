@@ -199,7 +199,7 @@ def train_model(net : torch.nn.Module,
     save_checkpoints = checkpoint_folder is not None
 
     starting_epoch = 0
-    loss_history_train = []
+    loss_history = []
     loss_history_val = []
 
     scaler=torch.cuda.amp.GradScaler()
@@ -209,7 +209,7 @@ def train_model(net : torch.nn.Module,
         if os.path.exists(checkpoint_folder):
             checkpoint = load_checkpoint(checkpoint_folder=checkpoint_folder, net=net, optimizer=optimizer)
             if checkpoint is not None:
-                starting_epoch, net, optimizer, loss_history_train, additional_info = checkpoint
+                starting_epoch, net, optimizer, loss_history, loss_history_val, additional_info = checkpoint
                 print("Checkpoint loaded.")
         else:
             os.makedirs(checkpoint_folder)
@@ -231,7 +231,7 @@ def train_model(net : torch.nn.Module,
                                       device=device, 
                                       scaler=scaler,
                                       prefix='\tTrain ')
-        loss_history_train.append(train_loss)
+        loss_history.append(train_loss)
 
         # Validation 
         val_loss = validate(net=net, 
@@ -246,7 +246,7 @@ def train_model(net : torch.nn.Module,
             checkpoint_dict = create_checkpoint_dict(net=net,
                                                      epoch=epoch+1,
                                                      optimizer=optimizer,
-                                                     loss_history=loss_history_train,
+                                                     loss_history=loss_history,
                                                      loss_history_val=loss_history_val,
                                                      additional_info=additional_info)
 
