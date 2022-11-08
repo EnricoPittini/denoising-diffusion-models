@@ -86,7 +86,7 @@ def validate(net, data_loader_val, loss_function, device, prefix=''):
 
             print(prefix + f'{batch_idx+1}/{len(data_loader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80), end = '\r')
 
-    print(prefix + f'{batch_idx+1}/{len(data_loader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80), end = '\r')
+    print(prefix + f'{batch_idx+1}/{len(data_loader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80))
     mse_loss_np = (mse_loss).detach().cpu().numpy()
 
     return mse_loss_np
@@ -190,7 +190,7 @@ def train_model(net : torch.nn.Module,
                             data_loader_val=data_loader_val, 
                             loss_function=loss_function, 
                             device=device,
-                            prefix='\Val ')
+                            prefix='\tVal ')
         loss_history_val.append(val_loss)
 
         # create checkpoint dictionary
