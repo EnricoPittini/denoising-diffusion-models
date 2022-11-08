@@ -199,7 +199,7 @@ def train_model(net : torch.nn.Module,
                                                      epoch=epoch+1,
                                                      optimizer=optimizer,
                                                      loss_history=loss_history_train,
-                                                     #loss_history_val=loss_history_val,
+                                                     loss_history_val=loss_history_val,
                                                      additional_info=additional_info)
 
             # save checkpoint dict if filename is provided

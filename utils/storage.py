@@ -9,6 +9,7 @@ def create_checkpoint_dict(net : torch.nn.Module,
                            epoch : int,
                            optimizer : torch.optim.Optimizer,
                            loss_history : list,
+                           loss_history_val : list,
                            additional_info={}):
     """Get the training checkpoint dictionary.
 
@@ -18,6 +19,7 @@ def create_checkpoint_dict(net : torch.nn.Module,
     epoch : int
     optimizer : torch.optim.Optimizer
     loss_history : list
+    loss_history_val : list
     additional_info : dict, optional
 
     Returns
@@ -31,6 +33,7 @@ def create_checkpoint_dict(net : torch.nn.Module,
             'model_state_dict': net.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'loss_history': loss_history,
+            'loss_history_val': loss_history_val,
             'additional_info': additional_info
            }
 
