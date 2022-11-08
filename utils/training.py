@@ -7,8 +7,94 @@ import torch.optim as optim
 from utils.storage import *
 
 
+def train_one_epoch(net, data_loader_train, loss_function, optimizer, device, scaler, prefix=''):
+    net.train()         # set model to training mode
+
+    tot_error=0
+    tot_images=0
+    start_time = time.time()
+
+    for batch_idx, data in enumerate(data_loader_train):
+        inputs = data[0][0].to(device)
+        t = data[0][1].to(device)
+        labels = data[1].to(device)
+
+        optimizer.zero_grad()
+
+        with torch.autocast(device_type='cuda', dtype=torch.float16):
+            
+            # Compute prediction (forward input in the model)
+            outputs = net(inputs, t)
+
+            # Compute prediction error with the loss function
+            error = loss_function(outputs, labels)
+
+        # Backpropagation
+        #net.zero_grad()
+        #error.backward()
+        scaler.scale(error).backward()
+
+        # Optimizer step
+        #optimizer.step()
+        scaler.step(optimizer)
+        scaler.update()
+
+        tot_error += error*len(labels)      # weighted average
+        tot_images += len(labels)
+
+        mse_loss = tot_error/tot_images
+
+        epoch_time = time.time() - start_time
+        batch_time = epoch_time/(batch_idx+1)
+
+        print(prefix + f'{batch_idx+1}/{len(data_loader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80), end = '\r')
+
+    print(prefix + f'{batch_idx+1}/{len(data_loader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80))
+    mse_loss_np = (mse_loss).detach().cpu().numpy()
+
+    return mse_loss_np
+
+
+def validate(net, data_loader_val, loss_function, device, prefix=''):
+    net.eval()         # set model to evaluation mode
+
+    tot_error=0
+    tot_images=0
+    start_time = time.time()
+
+    with torch.no_grad():
+        for batch_idx, data in enumerate(data_loader_val):
+            inputs = data[0][0].to(device)
+            t = data[0][1].to(device)
+            labels = data[1].to(device)
+
+            with torch.autocast(device_type='cuda', dtype=torch.float16):
+                
+                # Compute prediction (forward input in the model)
+                outputs = net(inputs, t)
+
+                # Compute prediction error with the loss function
+                error = loss_function(outputs, labels)
+
+            tot_error += error*len(labels)      # weighted average
+            tot_images += len(labels)
+
+            mse_loss = tot_error/tot_images
+
+            epoch_time = time.time() - start_time
+            batch_time = epoch_time/(batch_idx+1)
+
+            print(prefix + f'{batch_idx+1}/{len(data_loader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80), end = '\r')
+
+    print(prefix + f'{batch_idx+1}/{len(data_loader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80), end = '\r')
+    mse_loss_np = (mse_loss).detach().cpu().numpy()
+
+    return mse_loss_np
+
+
 def train_model(net : torch.nn.Module,
-                data_loader : torch.utils.data.DataLoader,
+                data_loader_train : torch.utils.data.DataLoader,
+                data_loader_val : torch.utils.data.DataLoader,
                 loss_function : torch.nn.Module,
                 epochs : int,
                 optimizer : torch.optim.Optimizer = None,
@@ -25,7 +111,8 @@ def train_model(net : torch.nn.Module,
     ----------
     net : torch.nn.Module
         the model to train
-    data_loader : torch.utils.data.DataLoader
+    data_loader_train : torch.utils.data.DataLoader
+    data_loader_val : torch.utils.data.DataLoader
     loss_function : torch.nn.Module
     epochs : int
     optimizer : torch.optim.Optimizer, optional
@@ -66,7 +153,8 @@ def train_model(net : torch.nn.Module,
     save_checkpoints = checkpoint_folder is not None
 
     starting_epoch = 0
-    loss_history = []
+    loss_history_train = []
+    loss_history_val = []
 
     scaler=torch.cuda.amp.GradScaler()
 
@@ -75,7 +163,7 @@ def train_model(net : torch.nn.Module,
         if os.path.exists(checkpoint_folder):
             checkpoint = load_checkpoint(checkpoint_folder=checkpoint_folder, net=net, optimizer=optimizer)
             if checkpoint is not None:
-                starting_epoch, net, optimizer, loss_history, additional_info = checkpoint
+                starting_epoch, net, optimizer, loss_history_train, additional_info = checkpoint
                 print("Checkpoint loaded.")
         else:
             os.makedirs(checkpoint_folder)
@@ -84,61 +172,34 @@ def train_model(net : torch.nn.Module,
     if not verbose: print(" ")
 
     # -------------------- TRAINING -------------------- #
-    net.train()         # set model to training mode
     # loop for every epoch (training + evaluation)
     for i, epoch in enumerate(range(starting_epoch, epochs+starting_epoch)):
         if verbose: print(" ")
         print(f'Epoch: {epoch+1}/{epochs+starting_epoch}')
 
-        tot_error=0
-        tot_images=0
-        start_time = time.time()
+        train_loss = train_one_epoch(net=net, 
+                                      data_loader_train=data_loader_train, 
+                                      loss_function=loss_function, 
+                                      optimizer=optimizer, 
+                                      device=device, 
+                                      scaler=scaler,
+                                      prefix='\tTrain ')
+        loss_history_train.append(train_loss)
 
-        for batch_idx, data in enumerate(data_loader):
-            inputs = data[0][0].to(device)
-            t = data[0][1].to(device)
-            labels = data[1].to(device)
-
-            optimizer.zero_grad()
-
-            with torch.autocast(device_type='cuda', dtype=torch.float16):
-                
-                # Compute prediction (forward input in the model)
-                outputs = net(inputs, t)
-
-                # Compute prediction error with the loss function
-                error = loss_function(outputs, labels)
-
-            # Backpropagation
-            #net.zero_grad()
-            #error.backward()
-            scaler.scale(error).backward()
-
-            # Optimizer step
-            #optimizer.step()
-            scaler.step(optimizer)
-            scaler.update()
-
-            tot_error += error*len(labels)      # weighted average
-            tot_images += len(labels)
-
-            mse_loss = tot_error/tot_images
-
-            epoch_time = time.time() - start_time
-            batch_time = epoch_time/(batch_idx+1)
-
-            print(f'{batch_idx+1}/{len(data_loader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80), end = '\r')
-
-        print(f'{batch_idx+1}/{len(data_loader)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {mse_loss:.3g}'.ljust(80))
-        mse_loss_np = (mse_loss).detach().cpu().numpy()
-        loss_history.append(mse_loss_np)
+        val_loss = validate(net=net, 
+                            data_loader_val=data_loader_val, 
+                            loss_function=loss_function, 
+                            device=device,
+                            prefix='\Val ')
+        loss_history_val.append(val_loss)
 
         # create checkpoint dictionary
         if i%checkpoint_step == 0:
             checkpoint_dict = create_checkpoint_dict(net=net,
                                                      epoch=epoch+1,
                                                      optimizer=optimizer,
-                                                     loss_history=loss_history,
+                                                     loss_history=loss_history_train,
+                                                     loss_history_val=loss_history_val,
                                                      additional_info=additional_info)
 
             # save checkpoint dict if filename is provided
