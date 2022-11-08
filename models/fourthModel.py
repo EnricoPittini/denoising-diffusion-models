@@ -482,7 +482,8 @@ class FourthModel(nn.Module):
         #       - another block 
         mid_dim = dims[-1]
         self.mid_block1 = block_klass(mid_dim, mid_dim, time_emb_dim=time_dim)
-        self.mid_attn = Residual(PreNorm(mid_dim, Attention(mid_dim)))
+        # TODO : remember this change
+        self.mid_attn = Residual(PreNorm(mid_dim, LinearAttention(mid_dim, device=device))) #Residual(PreNorm(mid_dim, Attention(mid_dim)))
         self.mid_block2 = block_klass(mid_dim, mid_dim, time_emb_dim=time_dim)
 
         # Up UNet stages
