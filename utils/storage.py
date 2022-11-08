@@ -63,7 +63,6 @@ def save_checkpoint(checkpoint_dict, checkpoint_folder, clear_previous_checkpoin
 
 def _clear_checkpoint_folder(checkpoint_folder, keep_best):
     checkpoints = sorted([i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv' and i != 'loss_history_val.csv'])
-    print(checkpoints)
 
     best_found = '_best' in checkpoints[-1]
 
