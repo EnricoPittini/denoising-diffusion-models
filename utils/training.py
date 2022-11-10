@@ -144,6 +144,7 @@ def train_model(net : torch.nn.Module,
                 loss_function : torch.nn.Module,
                 epochs : int,
                 optimizer : torch.optim.Optimizer = None,
+                scheduler = None,  # TODO type
                 device : torch.device = None,
                 checkpoint_folder : str = None,
                 additional_info : dict = {},
@@ -163,6 +164,8 @@ def train_model(net : torch.nn.Module,
     epochs : int
     optimizer : torch.optim.Optimizer, optional
         by default Adam.
+    scheduler : , optional  TODO 
+        learning rate scheduler, by default None
     device : torch.device, optional
         cpu or cuda, by default cpu.
     checkpoint_folder : str, optional
@@ -195,6 +198,11 @@ def train_model(net : torch.nn.Module,
 
     if optimizer is None:
         optimizer = optim.Adam(net.parameters())
+    else:
+        optimizer = optimizer(params=net.parameters())
+
+    if scheduler is not None:
+        scheduler = scheduler(optimizer=optimizer)
 
     save_checkpoints = checkpoint_folder is not None
 
@@ -209,7 +217,7 @@ def train_model(net : torch.nn.Module,
         if os.path.exists(checkpoint_folder):
             checkpoint = load_checkpoint(checkpoint_folder=checkpoint_folder, net=net, optimizer=optimizer)
             if checkpoint is not None:
-                starting_epoch, net, optimizer, loss_history, loss_history_val, additional_info = checkpoint
+                starting_epoch, net, optimizer, scheduler, loss_history, loss_history_val, additional_info = checkpoint
                 print("Checkpoint loaded.")
         else:
             os.makedirs(checkpoint_folder)
@@ -241,18 +249,24 @@ def train_model(net : torch.nn.Module,
                             prefix='\tVal ')
         loss_history_val.append(val_loss)
 
+        # Update of the LR according to the scheduler
+        if scheduler is not None:
+            scheduler.step()
+
         # create checkpoint dictionary
         if i%checkpoint_step == 0:
             checkpoint_dict = create_checkpoint_dict(net=net,
                                                      epoch=epoch+1,
                                                      optimizer=optimizer,
+                                                     scheduler=scheduler,
                                                      loss_history=loss_history,
                                                      loss_history_val=loss_history_val,
                                                      additional_info=additional_info)
 
             # save checkpoint dict if filename is provided
             if save_checkpoints:
-                save_checkpoint(checkpoint_dict, checkpoint_folder, clear_previous_checkpoints=clear_previous_checkpoints, keep_best=keep_best, verbose=verbose)
+                save_checkpoint(checkpoint_dict, checkpoint_folder, clear_previous_checkpoints=clear_previous_checkpoints, 
+                                keep_best=keep_best, verbose=verbose)
 
     print('\nTraining done.')
 
