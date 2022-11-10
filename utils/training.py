@@ -8,7 +8,7 @@ from utils.storage import *
 
 
 def train_one_epoch(net : torch.nn.Module, 
-                    data_loader_train : torch.utils.data.DataLoader, 
+                    dataloader_train : torch.utils.data.DataLoader, 
                     loss_function : torch.nn.Module, 
                     optimizer : torch.optim.Optimizer = None, 
                     device : str = 'cpu', 
@@ -19,7 +19,7 @@ def train_one_epoch(net : torch.nn.Module,
     Parameters
     ----------
     net : torch.nn.Module
-    data_loader_train : torch.utils.data.DataLoader
+    dataloader_train : torch.utils.data.DataLoader
     loss_function : torch.nn.Module
     optimizer : torch.optim.Optimizer, optional
     device : str, optional
@@ -39,7 +39,7 @@ def train_one_epoch(net : torch.nn.Module,
     tot_images=0
     start_time = time.time()
 
-    for batch_idx, data in enumerate(data_loader_train):
+    for batch_idx, data in enumerate(dataloader_train):
         inputs = data[0][0].to(device)
         t = data[0][1].to(device)
         labels = data[1].to(device)
@@ -72,16 +72,16 @@ def train_one_epoch(net : torch.nn.Module,
         epoch_time = time.time() - start_time
         batch_time = epoch_time/(batch_idx+1)
 
-        print(prefix + f'{batch_idx+1}/{len(data_loader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80), end = '\r')
+        print(prefix + f'{batch_idx+1}/{len(dataloader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80), end = '\r')
 
-    print(prefix + f'{batch_idx+1}/{len(data_loader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80))
+    print(prefix + f'{batch_idx+1}/{len(dataloader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80))
     loss_np = (loss).detach().cpu().numpy()
 
     return loss_np
 
 
 def validate(net : torch.nn.Module, 
-             data_loader_val : torch.utils.data.DataLoader, 
+             dataloader_val : torch.utils.data.DataLoader, 
              loss_function : torch.nn.Module, 
              device : str = 'cpu', 
              prefix=''):
@@ -90,7 +90,7 @@ def validate(net : torch.nn.Module,
     Parameters
     ----------
     net : torch.nn.Module
-    data_loader_val : torch.utils.data.DataLoader
+    dataloader_val : torch.utils.data.DataLoader
     loss_function : torch.nn.Module
         Metric to use for the evaluation
     device : str, optional
@@ -109,7 +109,7 @@ def validate(net : torch.nn.Module,
     start_time = time.time()
 
     with torch.no_grad():
-        for batch_idx, data in enumerate(data_loader_val):
+        for batch_idx, data in enumerate(dataloader_val):
             inputs = data[0][0].to(device)
             t = data[0][1].to(device)
             labels = data[1].to(device)
@@ -130,17 +130,17 @@ def validate(net : torch.nn.Module,
             epoch_time = time.time() - start_time
             batch_time = epoch_time/(batch_idx+1)
 
-            print(prefix + f'{batch_idx+1}/{len(data_loader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80), end = '\r')
+            print(prefix + f'{batch_idx+1}/{len(dataloader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80), end = '\r')
 
-    print(prefix + f'{batch_idx+1}/{len(data_loader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80))
+    print(prefix + f'{batch_idx+1}/{len(dataloader_val)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80))
     loss_np = (loss).detach().cpu().numpy()
 
     return loss_np
 
 
 def train_model(net : torch.nn.Module,
-                data_loader_train : torch.utils.data.DataLoader,
-                data_loader_val : torch.utils.data.DataLoader,
+                dataloader_train : torch.utils.data.DataLoader,
+                dataloader_val : torch.utils.data.DataLoader,
                 loss_function : torch.nn.Module,
                 epochs : int,
                 optimizer : torch.optim.Optimizer = None,
@@ -157,8 +157,8 @@ def train_model(net : torch.nn.Module,
     ----------
     net : torch.nn.Module
         the model to train
-    data_loader_train : torch.utils.data.DataLoader
-    data_loader_val : torch.utils.data.DataLoader
+    dataloader_train : torch.utils.data.DataLoader
+    dataloader_val : torch.utils.data.DataLoader
     loss_function : torch.nn.Module
     epochs : int
     optimizer : torch.optim.Optimizer, optional
@@ -225,7 +225,7 @@ def train_model(net : torch.nn.Module,
 
         # Training epoch
         train_loss = train_one_epoch(net=net, 
-                                      data_loader_train=data_loader_train, 
+                                      dataloader_train=dataloader_train, 
                                       loss_function=loss_function, 
                                       optimizer=optimizer, 
                                       device=device, 
@@ -235,7 +235,7 @@ def train_model(net : torch.nn.Module,
 
         # Validation 
         val_loss = validate(net=net, 
-                            data_loader_val=data_loader_val, 
+                            dataloader_val=dataloader_val, 
                             loss_function=loss_function, 
                             device=device,
                             prefix='\tVal ')
