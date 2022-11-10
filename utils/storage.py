@@ -8,6 +8,7 @@ import torch.utils.data
 def create_checkpoint_dict(net : torch.nn.Module,
                            epoch : int,
                            optimizer : torch.optim.Optimizer,
+                           scheduler,  # TODO type
                            loss_history : list,
                            loss_history_val : list,
                            additional_info={}):
@@ -18,6 +19,7 @@ def create_checkpoint_dict(net : torch.nn.Module,
     net : torch.nn.Module
     epoch : int
     optimizer : torch.optim.Optimizer
+    scheduler : TODO type
     loss_history : list
     loss_history_val : list
     additional_info : dict, optional
@@ -28,10 +30,12 @@ def create_checkpoint_dict(net : torch.nn.Module,
     """
     additional_info['model'] = str(type(net))
     additional_info['optimizer'] = str(type(optimizer))
+    additional_info['scheduler'] = str(type(scheduler))
 
     return {'epoch': epoch,
             'model_state_dict': net.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
             'loss_history': loss_history,
             'loss_history_val': loss_history_val,
             'additional_info': additional_info
@@ -113,7 +117,8 @@ def load_checkpoint_dict(checkpoint_folder : str):
 
 def load_checkpoint(checkpoint_folder : str,
                     net : torch.nn.Module,
-                    optimizer : torch.optim.Optimizer):
+                    optimizer : torch.optim.Optimizer, 
+                    scheduler):  # TODO type
     """Load training status from a checkpoint.
 
     Parameters
@@ -122,6 +127,7 @@ def load_checkpoint(checkpoint_folder : str,
         folder containing the checkpoint file.
     net : torch.nn.Module
     optimizer : torch.optim.Optimizer
+    scheduler : TODO type
 
     Returns
     -------
@@ -130,6 +136,8 @@ def load_checkpoint(checkpoint_folder : str,
         the model with the loaded ``state_dict``.
     optimizer : torch.optim.Optimizer
         the optimizer with the loaded ``state_dict``.
+    scheduler : TODO type
+        the scheduler with the loaded ``state_dict``
     loss_history : list
     loss_history_val : list
     additional_info : dict
@@ -146,11 +154,12 @@ def load_checkpoint(checkpoint_folder : str,
     epoch = checkpoint['epoch']
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
     loss_history = checkpoint['loss_history']
     loss_history_val = checkpoint['loss_history_val']
     additional_info = checkpoint['additional_info']
 
-    return epoch, net, optimizer, loss_history, loss_history_val, additional_info
+    return epoch, net, optimizer, scheduler, loss_history, loss_history_val, additional_info
 
 
 def load_weights(net : torch.nn.Module, checkpoint_filename : str):
