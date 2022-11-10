@@ -215,7 +215,8 @@ def train_model(net : torch.nn.Module,
     # resume from previous checkpoint
     if checkpoint_folder is not None:
         if os.path.exists(checkpoint_folder):
-            checkpoint = load_checkpoint(checkpoint_folder=checkpoint_folder, net=net, optimizer=optimizer)
+            checkpoint = load_checkpoint(checkpoint_folder=checkpoint_folder, net=net, optimizer=optimizer, 
+                                         scheduler=scheduler)
             if checkpoint is not None:
                 starting_epoch, net, optimizer, scheduler, loss_history, loss_history_val, additional_info = checkpoint
                 print("Checkpoint loaded.")
