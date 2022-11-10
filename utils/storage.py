@@ -8,7 +8,7 @@ import torch.utils.data
 def create_checkpoint_dict(net : torch.nn.Module,
                            epoch : int,
                            optimizer : torch.optim.Optimizer,
-                           scheduler,  # TODO type
+                           scheduler : torch.optim.lr_scheduler._LRScheduler,  
                            loss_history : list,
                            loss_history_val : list,
                            additional_info={}):
@@ -19,7 +19,7 @@ def create_checkpoint_dict(net : torch.nn.Module,
     net : torch.nn.Module
     epoch : int
     optimizer : torch.optim.Optimizer
-    scheduler : TODO type
+    scheduler : torch.optim.lr_scheduler._LRScheduler
     loss_history : list
     loss_history_val : list
     additional_info : dict, optional
@@ -127,7 +127,7 @@ def load_checkpoint(checkpoint_folder : str,
         folder containing the checkpoint file.
     net : torch.nn.Module
     optimizer : torch.optim.Optimizer
-    scheduler : TODO type
+    scheduler : torch.optim.lr_scheduler._LRScheduler
 
     Returns
     -------
@@ -136,7 +136,7 @@ def load_checkpoint(checkpoint_folder : str,
         the model with the loaded ``state_dict``.
     optimizer : torch.optim.Optimizer
         the optimizer with the loaded ``state_dict``.
-    scheduler : TODO type
+    scheduler : torch.optim.lr_scheduler._LRScheduler
         the scheduler with the loaded ``state_dict``
     loss_history : list
     loss_history_val : list

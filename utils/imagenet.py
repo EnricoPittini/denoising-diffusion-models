@@ -10,6 +10,19 @@ from torchvision.datasets import ImageFolder
 
 
 def load_imagenet(root: str, split: str):
+    """Download and load the Tiny ImageNet dataset
+
+    Parameters
+    ----------
+    root : str
+        Local path in which storing the dataset
+    split : str
+        Either 'train' or 'val'
+
+    Returns
+    -------
+    torch.utils.data.Dataset
+    """
     os.system('wget http://cs231n.stanford.edu/tiny-imagenet-200.zip')
     os.system('unzip -qq tiny-imagenet-200.zip')
 
@@ -62,6 +75,7 @@ def _arrange_train_images(path_data: str) -> int:
         if os.path.exists(path_old_images):
             os.rmdir(path_old_images)
     return num_moved_images
+    
 
 def _split_validation_in_folders(path_data: str) -> int:
     """Splits the validation data set in category folders.

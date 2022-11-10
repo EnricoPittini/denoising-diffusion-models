@@ -6,6 +6,7 @@ import torch.utils.data
 import torch.optim as optim
 from utils.storage import *
 
+from torch.optim import lr_scheduler
 
 def train_one_epoch(net : torch.nn.Module, 
                     dataloader_train : torch.utils.data.DataLoader, 
@@ -144,7 +145,7 @@ def train_model(net : torch.nn.Module,
                 loss_function : torch.nn.Module,
                 epochs : int,
                 optimizer : torch.optim.Optimizer = None,
-                scheduler = None,  # TODO type
+                scheduler : torch.optim.lr_scheduler._LRScheduler = None,  
                 device : torch.device = None,
                 checkpoint_folder : str = None,
                 additional_info : dict = {},
@@ -164,7 +165,7 @@ def train_model(net : torch.nn.Module,
     epochs : int
     optimizer : torch.optim.Optimizer, optional
         by default Adam.
-    scheduler : , optional  TODO 
+    scheduler : torch.optim.lr_scheduler._LRScheduler, optional   
         learning rate scheduler, by default None
     device : torch.device, optional
         cpu or cuda, by default cpu.
