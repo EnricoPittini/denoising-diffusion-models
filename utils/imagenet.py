@@ -23,20 +23,24 @@ def load_imagenet(root: str, split: str):
     -------
     torch.utils.data.Dataset
     """
+    print('Downloading...')
     os.system('wget http://cs231n.stanford.edu/tiny-imagenet-200.zip')
     os.system('unzip -qq tiny-imagenet-200.zip')
 
-    os.system(f'mv tiny-imagenet-200 /{root}')
+    print('Preparing the folder...')
+    os.system(f'mkdir {root}')
+    os.system(f'mv "tiny-imagenet-200" {root}')
+    os.remove('tiny-imagenet-200.zip')
 
-    path_dataset = os.path.join(root, 'tiny-imagenet-200',split)
+    path_dataset = os.path.join(root, 'tiny-imagenet-200', split)
 
+    print('Fixing the folder...')
     if split=='train':
         _arrange_train_images(path_dataset)
     elif split=='val':
         _split_validation_in_folders(path_dataset)
 
-    os.remove('tiny-imagenet-200.zip')
-
+    print('Done')
     return ImageFolder(path_dataset)
         
 
@@ -75,7 +79,7 @@ def _arrange_train_images(path_data: str) -> int:
         if os.path.exists(path_old_images):
             os.rmdir(path_old_images)
     return num_moved_images
-    
+
 
 def _split_validation_in_folders(path_data: str) -> int:
     """Splits the validation data set in category folders.
@@ -118,6 +122,6 @@ def _split_validation_in_folders(path_data: str) -> int:
         shutil.move(path_source, path_dest)        
         num_moved_images += 1
 
-    os.remove(path_file_annotation)
+    #os.remove(path_file_annotation)
     os.rmdir(path_val)
     return num_moved_images
