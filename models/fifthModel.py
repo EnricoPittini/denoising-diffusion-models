@@ -80,7 +80,7 @@ class SqueezeAndExcitation(nn.Module):
 class FifthModel(nn.Module):
     """Uses X blocks with Gruped Convolution and Squeeze-and-Excitation."""
     def __init__(self, in_channels=3, device='cpu', res_blocks=3, temp_encoding_initial_channels=10,
-                 block_channels=[32, 64, 128, 256, 512]):
+                 block_channels=[128, 256, 512, 1024, 2048]):
         if temp_encoding_initial_channels>block_channels[0]:
             raise ValueError('`temp_encoding_initial_channels` must be smaller than `block_channels[0]s`')
 
@@ -100,19 +100,19 @@ class FifthModel(nn.Module):
 
         # downsampling
         for i in range(len(block_channels)-1):
-            block = Block(in_channels=block_channels[i], out_channels=block_channels[i+1], device=device)
+            block = Block(in_channels=block_channels[i], out_channels=block_channels[i+1], groups=16, device=device)
             squeeze_and_excitation = SqueezeAndExcitation(channels=block_channels[i+1], device=device)
             self.D_blocks.append(nn.ModuleList((block, squeeze_and_excitation)))
 
         # ResNet
         for i in range(res_blocks):
-            block = Block(in_channels=block_channels[-1], out_channels=block_channels[-1], device=device)
+            block = Block(in_channels=block_channels[-1], out_channels=block_channels[-1], groups=16, device=device)
             squeeze_and_excitation = SqueezeAndExcitation(channels=block_channels[-1], device=device)
             self.R_blocks.append(nn.ModuleList((block, squeeze_and_excitation)))
 
         # upsampling
         for i in reversed(range(len(block_channels)-1)):
-            block = Block(in_channels=block_channels[i+1], out_channels=block_channels[i], device=device)
+            block = Block(in_channels=block_channels[i+1], out_channels=block_channels[i], groups=16, device=device)
             squeeze_and_excitation = SqueezeAndExcitation(channels=block_channels[i], device=device)
             self.U_blocks.append(nn.ModuleList((block, squeeze_and_excitation)))
 
