@@ -6,12 +6,13 @@ import torch.utils.data
 import torch.optim as optim
 from utils.storage import *
 
-from torch.optim import lr_scheduler
+from torch.optim.lr_scheduler import OneCycleLR, CyclicLR
 
 def train_one_epoch(net : torch.nn.Module, 
                     dataloader_train : torch.utils.data.DataLoader, 
                     loss_function : torch.nn.Module, 
                     optimizer : torch.optim.Optimizer = None, 
+                    scheduler : torch.optim.lr_scheduler._LRScheduler = None,
                     device : str = 'cpu', 
                     scaler = torch.cuda.amp.GradScaler(), 
                     prefix : str = ''):
@@ -23,6 +24,10 @@ def train_one_epoch(net : torch.nn.Module,
     dataloader_train : torch.utils.data.DataLoader
     loss_function : torch.nn.Module
     optimizer : torch.optim.Optimizer, optional
+    scheduler : torch.optim.lr_scheduler._LRScheduler, optional
+        If given, it is assumed that the scheduler step must be performed after each batch, and not after each epoch.
+        If the scheduler step must be performed after each epoch, do not specify any scheduler.
+        PyTorch schedulers for which the update must be performed after each batch: `OneCycleLR`, `CyclicLR`.
     device : str, optional
     scaler : _type_, optional
     prefix : str, optional
@@ -69,6 +74,10 @@ def train_one_epoch(net : torch.nn.Module,
         tot_images += len(labels)
 
         loss = tot_error/tot_images
+
+        # Update of the LR, according to the given scheduler
+        if scheduler is not None:
+            scheduler.step()
 
         epoch_time = time.time() - start_time
         batch_time = epoch_time/(batch_idx+1)
@@ -166,7 +175,9 @@ def train_model(net : torch.nn.Module,
     optimizer : torch.optim.Optimizer, optional
         by default Adam.
     scheduler : torch.optim.lr_scheduler._LRScheduler, optional   
-        learning rate scheduler, by default None
+        learning rate scheduler, by default None.
+        The update of the LR is performed either after each epoch (standard update) or after each batch (only for 
+        `OneCycleLR` and `CyclicLR`).
     device : torch.device, optional
         cpu or cuda, by default cpu.
     checkpoint_folder : str, optional
@@ -204,6 +215,12 @@ def train_model(net : torch.nn.Module,
 
     if scheduler is not None:
         scheduler = scheduler(optimizer=optimizer)
+        
+        # Understand whether the LR scheduler must be update after each epoch (classic update) or after each batch (only for
+        # two schedulers).
+        scheduler_update_each_batch = False
+        if type(scheduler)==OneCycleLR or type(scheduler)==CyclicLR:
+            scheduler_update_each_batch = True 
 
     save_checkpoints = checkpoint_folder is not None
 
@@ -238,6 +255,9 @@ def train_model(net : torch.nn.Module,
                                       dataloader_train=dataloader_train, 
                                       loss_function=loss_function, 
                                       optimizer=optimizer, 
+                                      # Specify the scheduler to the train epoch only if a scheduler exists and if the LR 
+                                      # update must be performed after each batch (and not after each epoch)
+                                      scheduler=None if (scheduler is None or not scheduler_update_each_batch) else  scheduler, 
                                       device=device, 
                                       scaler=scaler,
                                       prefix='\tTrain ')
@@ -251,8 +271,8 @@ def train_model(net : torch.nn.Module,
                             prefix='\tVal ')
         loss_history_val.append(val_loss)
 
-        # Update of the LR according to the scheduler
-        if scheduler is not None:
+        # Update of the LR according to the scheduler (if the update must be performed after each epoch)
+        if scheduler is not None and not scheduler_update_each_batch:
             scheduler.step()
 
         # create checkpoint dictionary
