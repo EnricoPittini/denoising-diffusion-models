@@ -150,6 +150,8 @@ def load_checkpoint(checkpoint_folder : str,
         if ``checkpoint_folder`` does not exist.
     """
     checkpoint = load_checkpoint_dict(checkpoint_folder)
+    if checkpoint is None:
+        return None
 
     epoch = checkpoint['epoch']
     net.load_state_dict(checkpoint['model_state_dict'])
