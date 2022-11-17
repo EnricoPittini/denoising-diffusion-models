@@ -110,7 +110,7 @@ def load_checkpoint_dict(checkpoint_folder : str):
     filepath = os.path.join(checkpoint_folder, filename)
 
     print(f"Loading checkpoint: {filepath}")
-    checkpoint_dict = torch.load(filepath)
+    checkpoint_dict = torch.load(filepath, map_location=torch.device('cpu'))
 
     return checkpoint_dict
 
