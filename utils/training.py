@@ -52,7 +52,7 @@ def train_one_epoch(net : torch.nn.Module,
 
         optimizer.zero_grad()
 
-        with torch.autocast(device_type='cuda', dtype=torch.float16):
+        with torch.autocast(device_type='cuda'):#, dtype=torch.float16):
             
             # Compute prediction (forward input in the model)
             outputs = net(inputs, t)
