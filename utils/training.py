@@ -75,14 +75,15 @@ def train_one_epoch(net : torch.nn.Module,
 
         loss = tot_error/tot_images
 
-        # Update of the LR, according to the given scheduler
+        # Update of the LR, according to the given scheduler (update after each batch)
         if scheduler is not None:
+            # print('UPDATE BATCH')
             scheduler.step()
 
         epoch_time = time.time() - start_time
         batch_time = epoch_time/(batch_idx+1)
 
-        print(prefix + f'{batch_idx+1}/{len(dataloader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80), end = '\r')
+        print(prefix + f"{batch_idx+1}/{len(dataloader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}, lr: {optimizer.param_groups[0]['lr']}".ljust(80), end = '\r')
 
     print(prefix + f'{batch_idx+1}/{len(dataloader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}'.ljust(80))
     loss_np = (loss).detach().cpu().numpy()
@@ -273,6 +274,7 @@ def train_model(net : torch.nn.Module,
 
         # Update of the LR according to the scheduler (if the update must be performed after each epoch)
         if scheduler is not None and not scheduler_update_each_batch:
+            #print('UPDATE EPOCH')
             scheduler.step()
 
         # create checkpoint dictionary
