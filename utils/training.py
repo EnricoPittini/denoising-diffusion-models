@@ -83,9 +83,9 @@ def train_one_epoch(net : torch.nn.Module,
         epoch_time = time.time() - start_time
         batch_time = epoch_time/(batch_idx+1)
 
-        print(prefix + f"{batch_idx+1}/{len(dataloader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}, lr: {optimizer.param_groups[0]['lr']}".ljust(80), end = '\r')
+        print(prefix + f"{batch_idx+1}/{len(dataloader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {loss:.3g}".ljust(80), end = '\r')
 
-    print(prefix + f"{batch_idx+1}/{len(dataloader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, loss: {loss:.3g}, lr: {optimizer.param_groups[0]['lr']}".ljust(80))
+    print(prefix + f"{batch_idx+1}/{len(dataloader_train)}, {epoch_time:.0f}s {batch_time*1e3:.0f}ms/step, lr: {optimizer.param_groups[0]['lr']:.3g}, loss: {loss:.3g}".ljust(80))
     loss_np = (loss).detach().cpu().numpy()
 
     return loss_np
