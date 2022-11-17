@@ -14,7 +14,7 @@ def train_one_epoch(net : torch.nn.Module,
                     optimizer : torch.optim.Optimizer = None, 
                     scheduler : torch.optim.lr_scheduler._LRScheduler = None,
                     device : str = 'cpu', 
-                    scaler = torch.cuda.amp.GradScaler(), 
+                    #scaler = torch.cuda.amp.GradScaler(), 
                     prefix : str = ''):
     """Train the given model for one epoch, over the given dataset
 
@@ -61,14 +61,14 @@ def train_one_epoch(net : torch.nn.Module,
             error = loss_function(outputs, labels)
 
         # Backpropagation
-        #net.zero_grad()
-        #error.backward()
-        scaler.scale(error).backward()
+        net.zero_grad()
+        error.backward()
+        #scaler.scale(error).backward()
 
         # Optimizer step
-        #optimizer.step()
-        scaler.step(optimizer)
-        scaler.update()
+        optimizer.step()
+        #scaler.step(optimizer)
+        #scaler.update()
 
         tot_error += error*len(labels)      # weighted average
         tot_images += len(labels)
@@ -229,7 +229,7 @@ def train_model(net : torch.nn.Module,
     loss_history = []
     loss_history_val = []
 
-    scaler=torch.cuda.amp.GradScaler()
+    #scaler=torch.cuda.amp.GradScaler()
 
     # resume from previous checkpoint
     if checkpoint_folder is not None:
@@ -260,7 +260,7 @@ def train_model(net : torch.nn.Module,
                                       # update must be performed after each batch (and not after each epoch)
                                       scheduler=None if (scheduler is None or not scheduler_update_each_batch) else  scheduler, 
                                       device=device, 
-                                      scaler=scaler,
+                                      #scaler=scaler,
                                       prefix='\tTrain ')
         loss_history.append(train_loss)
 
