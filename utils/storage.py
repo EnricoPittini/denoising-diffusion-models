@@ -35,7 +35,7 @@ def create_checkpoint_dict(net : torch.nn.Module,
     return {'epoch': epoch,
             'model_state_dict': net.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'scheduler_state_dict': scheduler.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict() if scheduler is not None else None,
             'loss_history': loss_history,
             'loss_history_val': loss_history_val,
             'additional_info': additional_info
@@ -156,7 +156,8 @@ def load_checkpoint(checkpoint_folder : str,
     epoch = checkpoint['epoch']
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    if scheduler is not None:
+        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
     loss_history = checkpoint['loss_history']
     loss_history_val = checkpoint['loss_history_val']
     additional_info = checkpoint['additional_info']
