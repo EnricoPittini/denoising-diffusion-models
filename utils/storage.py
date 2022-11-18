@@ -66,7 +66,7 @@ def save_checkpoint(checkpoint_dict, checkpoint_folder, clear_previous_checkpoin
 
 
 def _clear_checkpoint_folder(checkpoint_folder, keep_best):
-    checkpoints = sorted([i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv' and i != 'loss_history_val.csv'])
+    checkpoints = sorted([i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv' and i != 'loss_history_val.csv'  and '.ckpt' in i])
 
     best_found = '_best' in checkpoints[-1]
 
@@ -106,7 +106,7 @@ def load_checkpoint_dict(checkpoint_folder : str):
         print(f"No checkpoint found in {checkpoint_folder}, using default initialization.")
         return None
 
-    filename = [i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv' and i != 'loss_history_val.csv'][-1]
+    filename = [i for i in os.listdir(checkpoint_folder) if i != 'loss_history.csv' and i != 'loss_history_val.csv' and '.ckpt' in i][-1]
     filepath = os.path.join(checkpoint_folder, filename)
 
     print(f"Loading checkpoint: {filepath}")
