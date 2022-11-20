@@ -4,10 +4,10 @@ import torch.nn.functional as F
 
 
 class Model(nn.Module):
-    """Basic UNet diffusion model with ResNet layers.
-    This model ignores the timestep.
+    """Basic model for predicting the timestep t of a noisy image.
+    This model simply consists in a sequence of downsampling convolutions and then a final linear layer.
     """
-    def __init__(self, img_shape,  device='cpu', block_channels=[8, 16, 32, 64, 128]):
+    def __init__(self, img_shape,  device='cpu', block_channels=[8, 16, 32, 64, 128, 256]):
         super().__init__()
         img_depth = img_shape[-3]
         self.device = device
@@ -26,11 +26,11 @@ class Model(nn.Module):
             self.D_blocks.append(nn.ModuleList((c1,bn1,c2,bn2)))
 
         # global average pooling
-        #img_tensor_spatialDimensions = img_shape[1]//2**(len(block_channels)-1), img_shape[2]//2**(len(block_channels)-1)
         self.gap = nn.AdaptiveAvgPool2d(output_size=1)
 
-        # final linear layer
-        self.l = nn.Linear(in_features=block_channels[-1], out_features=1, device=device)
+        # final linear layers
+        self.l1 = nn.Linear(in_features=block_channels[-1], out_features=block_channels[-2], device=device)
+        self.l2 = nn.Linear(in_features=block_channels[-2], out_features=1, device=device)
         
 
     def forward(self, x):
@@ -48,7 +48,9 @@ class Model(nn.Module):
 
         x = self.gap(x)
         x = x.reshape(x.shape[0:2])
-        x = self.l(x)
+        x = self.l1(x)
+        x = F.relu(x)
+        x = self.l2(x)
         x = F.relu(x)
 
         return x

@@ -46,9 +46,9 @@ def train_one_epoch(net : torch.nn.Module,
     start_time = time.time()
 
     for batch_idx, data in enumerate(dataloader_train):
-        inputs = data[0][0].to(device)
-        t = data[0][1].to(device)
-        t = t.reshape(t.shape+(1,)).float()
+        inputs = data[0].to(device)
+        labels = data[1].to(device)
+        labels = labels.reshape(labels.shape+(1,)).float()
 
         optimizer.zero_grad()
 
@@ -58,11 +58,15 @@ def train_one_epoch(net : torch.nn.Module,
             outputs = net(inputs)
 
             # Compute prediction error with the loss function
-            error = loss_function(outputs, t)
+            error = loss_function(outputs, labels)
+            #print(error)
+            #error = error.float()
+            #print(error)
 
         # Backpropagation
         #net.zero_grad()
         #error.backward()
+        #print(error)
         scaler.scale(error).backward()
 
         # Optimizer step
@@ -70,8 +74,8 @@ def train_one_epoch(net : torch.nn.Module,
         scaler.step(optimizer)
         scaler.update()
 
-        tot_error += error*len(t)      # weighted average
-        tot_images += len(t)
+        tot_error += error*len(labels)      # weighted average
+        tot_images += len(labels)
 
         loss = tot_error/tot_images
 
@@ -121,9 +125,9 @@ def validate(net : torch.nn.Module,
 
     with torch.no_grad():
         for batch_idx, data in enumerate(dataloader_val):
-            inputs = data[0][0].to(device)
-            t = data[0][1].to(device)
-            t = t.reshape(t.shape+(1,)).float()
+            inputs = data[0].to(device)
+            labels = data[1].to(device)
+            labels = labels.reshape(labels.shape+(1,)).float()
 
             with torch.autocast(device_type='cuda', dtype=torch.float16):
                 
@@ -131,10 +135,10 @@ def validate(net : torch.nn.Module,
                 outputs = net(inputs)
 
                 # Compute prediction error with the loss function
-                error = loss_function(outputs, t)
+                error = loss_function(outputs, labels)
 
-            tot_error += error*len(t)      # weighted average
-            tot_images += len(t)
+            tot_error += error*len(labels)      # weighted average
+            tot_images += len(labels)
 
             loss = tot_error/tot_images
 
