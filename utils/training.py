@@ -30,6 +30,7 @@ def train_one_epoch(net : torch.nn.Module,
         PyTorch schedulers for which the update must be performed after each batch: `OneCycleLR`, `CyclicLR`.
     device : str, optional
     scaler : torch.cuda.amp.GradScaler(), optional
+        The scaler for using 16 bits precision
     prefix : str, optional
         String to append at the beginning of the output information, by default ''
 
@@ -52,7 +53,7 @@ def train_one_epoch(net : torch.nn.Module,
 
         optimizer.zero_grad()
 
-        with torch.autocast(device_type='cuda', dtype=torch.float16):
+        with torch.autocast(device_type='cuda', dtype=torch.float16):  # 16 bit precision (for using less memory)
             
             # Compute prediction (forward input in the model)
             outputs = net(inputs, t)
@@ -229,6 +230,7 @@ def train_model(net : torch.nn.Module,
     loss_history = []
     loss_history_val = []
 
+    # The scaler for using 16 bits precision
     scaler=torch.cuda.amp.GradScaler()
 
     # resume from previous checkpoint
