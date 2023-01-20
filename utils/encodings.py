@@ -3,8 +3,7 @@ import torch
 
 def pos_encoding(t, channels, spatial_dimensions, device='cpu'):
     """Positional encoding of the timestep.
-    Each channels is a component of the fourier
-    series of t.
+    Each channels is a component of the fourier series of t.
 
     Parameters
     ----------
@@ -12,8 +11,7 @@ def pos_encoding(t, channels, spatial_dimensions, device='cpu'):
         timestep. Its shape must be (1,).
     channels : int
         corresponds to the number of fourier components of the series.
-        Half the channels are the sin components and half for the cos
-        components. Must be an even number.
+        Half the channels are the sin components and half for the cos  components. Must be an even number.
     spatial_dimensions : tuple of int
     device : str, optional
         by default 'cpu'.

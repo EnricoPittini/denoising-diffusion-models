@@ -29,7 +29,7 @@ def train_one_epoch(net : torch.nn.Module,
         If the scheduler step must be performed after each epoch, do not specify any scheduler.
         PyTorch schedulers for which the update must be performed after each batch: `OneCycleLR`, `CyclicLR`.
     device : str, optional
-    scaler : _type_, optional
+    scaler : torch.cuda.amp.GradScaler(), optional
     prefix : str, optional
         String to append at the beginning of the output information, by default ''
 

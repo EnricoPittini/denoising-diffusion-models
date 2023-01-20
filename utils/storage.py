@@ -26,7 +26,15 @@ def create_checkpoint_dict(net : torch.nn.Module,
 
     Returns
     -------
-    dict
+    checkpoint_dict : dict
+        Dictionary containing the checkpoint information. Namely:
+        - epoch
+        - model_state_dict
+        - optimizer_state_dict
+        - scheduler_state_dict
+        - loss_history
+        - loss_history_val
+        - additional_info
     """
     additional_info['model'] = str(type(net))
     additional_info['optimizer'] = str(type(optimizer))
@@ -43,6 +51,28 @@ def create_checkpoint_dict(net : torch.nn.Module,
 
 
 def save_checkpoint(checkpoint_dict, checkpoint_folder, clear_previous_checkpoints=True, keep_best=True, verbose=False):
+    """Save the given checkpoint dictionary into the specified checkpoint folder
+
+    Parameters
+    ----------
+    checkpoint_dict : dict
+        Dictionary containing the checkpoint information. Namely:
+        - epoch
+        - model_state_dict
+        - optimizer_state_dict
+        - scheduler_state_dict
+        - loss_history
+        - loss_history_val
+        - additional_info
+    checkpoint_folder : str
+        Folder into which storing the checkpoint
+    clear_previous_checkpoints : bool, optional
+        Whether to clear the previous saved checkpoints or not, by default True
+    keep_best : bool, optional
+        Whether to keep only the best checkpoint or not, by default True
+    verbose : bool, optional
+        Whether to be verbose or not, by default False
+    """
     filename = 'checkpoint_' + f"{checkpoint_dict['epoch']}".zfill(4)
 
     # put best flag
@@ -81,18 +111,24 @@ def _clear_checkpoint_folder(checkpoint_folder, keep_best):
 
 
 def load_checkpoint_dict(checkpoint_folder : str):
-    """Load training status from a checkpoint.
+    """Load the checkpoint dictionary from the specified checkpoint folder.
 
     Parameters
     ----------
     checkpoint_folder : str
         folder containing the checkpoint file.
-    net : torch.nn.Module
-    optimizer : torch.optim.Optimizer
 
     Returns
     -------
     dict
+        Dictionary containing the checkpoint information. Namely:
+        - epoch
+        - model_state_dict
+        - optimizer_state_dict
+        - scheduler_state_dict
+        - loss_history
+        - loss_history_val
+        - additional_info
 
     Raises
     ------
@@ -119,7 +155,7 @@ def load_checkpoint(checkpoint_folder : str,
                     net : torch.nn.Module,
                     optimizer : torch.optim.Optimizer, 
                     scheduler):  # TODO type
-    """Load training status from a checkpoint.
+    """Load training status from a checkpoint folder.
 
     Parameters
     ----------
