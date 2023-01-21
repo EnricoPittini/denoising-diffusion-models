@@ -53,10 +53,10 @@ class DiffusionDataset(torch.utils.data.Dataset):
     More precisely, we start from a standard dataset of images. Given and index 'idx', this dataset returns the sample image 
     with that index: 'img' (this is basically our original image x_0).
     Then, we enrich this, creating a new dataset. Given and index 'idx', this diffusion datset returns a couple: 
-    - The couple (x_noisy, t), where 't' is the timestep and 'x_noisy' is the image plus the noise at that timestep (i.e. 
-      x_t).
+    - The couple `(x_noisy, t)`, where `t` is the timestep and `x_noisy` is the image plus the noise at that timestep (i.e.
+      `x_t`).
       This couple can be thought as the input data of the network.
-    - The noise 'noise' which has been added to the image at that timestep 't'.
+    - The noise 'noise' which has been added to the image at that timestep `t`.
       This can be thought of as the target label for the network.
 
     If this dataset is used for training, then each time an image 'img' is sampled, a different random timestep 't' is used

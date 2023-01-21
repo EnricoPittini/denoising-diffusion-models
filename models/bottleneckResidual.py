@@ -5,7 +5,7 @@ from utils.encodings import pos_encoding
 
 
 class UNetBottleneckResidual(nn.Module):
-    """UNet diffusion model with ResNet bottleneck blocks and residual connections.
+    """UNet diffusion model with residual bottleneck blocks.
 
     The model takes as input the noisy image 'x' and the timesetp 't' and returns the noise at that timestep.
 
