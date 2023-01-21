@@ -342,15 +342,19 @@ class PreNorm(nn.Module):
 
 ##### MODEL
 
-class FourthModel(nn.Module):
+class HuggingFaceModel(nn.Module):
     """UNet diffusion model with ResNet blocks (or ConvNext blocks), positional encoding for the timestep and linear attention.
     The downsampling is done with strided convolution and the upsampling is done by Transpose Convolution.
     Group Normalization and SiLU activation function are used.
-    https://huggingface.co/blog/annotated-diffusion
 
-    Similar to the UNet Bottleneck residual, but a different implementation with linear attention is used is used (inspired from Huggingface).
+    This model has been taken from https://huggingface.co/blog/annotated-diffusion.
+    The only difference is that we 
 
-    We always use LinearAttention instead of the quadratic Attention. The original implementation uses quadratic attention in the intermediate ResNet part.
+    Similar to the UNet Bottleneck residual, but a different implementation with linear attention is used is used (inspired 
+    from Huggingface).
+
+    We always use LinearAttention instead of the quadratic Attention. The original implementation uses quadratic attention in
+    the intermediate ResNet part.
 
     Parameters
     ----------

@@ -60,11 +60,10 @@ class DiffusionDataset(torch.utils.data.Dataset):
       This can be thought of as the target label for the network.
 
     If this dataset is used for training, then each time an image 'img' is sampled, a different random timestep 't' is used
-    for generating 'noise' and 'x_noisy'. So, across different batches, the same image is affected to different degrees of
-    noise.
+    for generating 'x_noisy'. So, across different batches, the same image is affected to different degrees of noise.
     If instead this datset is used for validation, then each image 'img' has a random but fixed timestep 't', which is the 
-    same each time that image is sampled, for generating the same 'noise' and 'x_noisy'. So, across different batches, the 
-    same image is affected by the same degree of noise.  
+    same each time that image is sampled, for generating the same 'x_noisy'. So, across different batches, the same image is 
+    affected by the same degree of noise.  
 
     Parameters
     ----------
