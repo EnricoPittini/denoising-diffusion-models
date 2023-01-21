@@ -1,4 +1,5 @@
 .vscode
+*.pp3
 
 weights
 checkpoints
