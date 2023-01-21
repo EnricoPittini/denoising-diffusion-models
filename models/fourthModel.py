@@ -36,6 +36,7 @@ class Residual(nn.Module):
     def forward(self, x, *args, **kwargs):
         return self.fn(x, *args, **kwargs) + x
 
+
 class Upsample(nn.Module):
     """Module for upsampling the image tensor
 
@@ -52,6 +53,7 @@ class Upsample(nn.Module):
     def forward(self, x):
         return self.convt(x)
 
+
 class Downsample(nn.Module):
     """Module for downsampling the image tensor
 
@@ -67,6 +69,7 @@ class Downsample(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
+
 
 class SinusoidalPositionEmbeddings(nn.Module):
     """Module for creating the embedding of the timestep.
@@ -91,6 +94,7 @@ class SinusoidalPositionEmbeddings(nn.Module):
         embeddings = time[:, None] * embeddings[None, :]
         embeddings = torch.cat((embeddings.sin(), embeddings.cos()), dim=-1)
         return embeddings
+
 
 class Block(nn.Module):
     """Block which consists in a convolution followed by Group normalization and SiLU.
@@ -125,6 +129,7 @@ class Block(nn.Module):
 
         x = self.act(x)
         return x
+
 
 class ResnetBlock(nn.Module):
     """Resnet block. It consists in applying two times the block `Block` and then applying a final convolution, with a skip 
@@ -172,40 +177,6 @@ class ResnetBlock(nn.Module):
 
         h = self.block2(h)  # Second block
         return h + self.res_conv(x)  # Skip connection
-    
-"""class ConvNextBlock(nn.Module):
-    def __init__(self, dim_in, dim_out, *, time_emb_dim=None, mult=2, norm=True, device='cpu'):
-        super().__init__()
-
-        # Multi-Layer Perceptron for processing the time embedding and making its dimensions compliant with the image output
-        # channels
-        self.mlp = (
-            nn.Sequential(nn.GELU(), nn.Linear(time_emb_dim, dim_in, device=device))
-            if exists(time_emb_dim)
-            else None
-        )
-
-        self.ds_conv = nn.Conv2d(dim_in, dim_in, kernel_size=7, stride=3, groups=dim_in, device=device)
-
-        self.net = nn.Sequential(
-            nn.GroupNorm(1, dim_in, device=device) if norm else nn.Identity(),
-            nn.Conv2d(in_channels=dim_in, out_channels=dim_out*mult, kernel_size=3, stride=1, device=device),
-            nn.GELU(),
-            nn.GroupNorm(1, dim_out*mult, device=device),
-            nn.Conv2d(in_channels=dim_out*mult, out_channels=dim_out, kernel_size=3, stride=1, device=device),
-        )
-
-        self.res_conv = nn.Conv2d(dim_in, dim_out, kernel_size=1, device=device) if dim_in != dim_out else nn.Identity()
-        
-    def forward(self, x, time_emb=None):
-        h = self.ds_conv(x)
-
-        if exists(self.mlp) and exists(time_emb):
-            condition = self.mlp(time_emb)
-            h = h + rearrange(condition, "b c -> b c 1 1")
-
-        h = self.net(h)
-        return h + self.res_conv(x)"""
 
 
 class ConvNextBlock(nn.Module):
@@ -303,6 +274,7 @@ class Attention(nn.Module):
         out = rearrange(out, "b h (x y) d -> b (h d) x y", x=h, y=w)
         return self.to_out(out)
 
+
 class LinearAttention(nn.Module):
     """Block implementing the linear attention variant, whose time and memory requirements scale linear in the sequence 
     length, as opposed to quadratic for regular attention.
@@ -346,6 +318,7 @@ class LinearAttention(nn.Module):
         out = rearrange(out, "b h c (x y) -> b (h c) x y", h=self.heads, x=h, y=w)
         return self.to_out(out)
 
+
 class PreNorm(nn.Module):
     """Block for applying Group normalization before the attention
 
@@ -375,6 +348,10 @@ class FourthModel(nn.Module):
     Group Normalization and SiLU activation function are used.
     https://huggingface.co/blog/annotated-diffusion
 
+    Similar to the UNet Bottleneck residual, but a different implementation with linear attention is used is used (inspired from Huggingface).
+
+    We always use LinearAttention instead of the quadratic Attention. The original implementation uses quadratic attention in the intermediate ResNet part.
+
     Parameters
     ----------
     dim : int
@@ -399,11 +376,10 @@ class FourthModel(nn.Module):
         Whether to use ConvNext blocks instead of ResNet blocks, by default True
     convnext_mult : int, optional
         Number of mult for the ConvNext blocks, by default 2
-    
     """
     def __init__(
         self,
-        dim,  
+        dim,
         device='cpu',
         init_dim=None,
         out_dim=None,
@@ -459,7 +435,7 @@ class FourthModel(nn.Module):
         for ind, (dim_in, dim_out) in enumerate(in_out):
             is_last = ind >= (num_resolutions - 1)
 
-            # A down stage consists in: 
+            # A down stage consists of:
             #       - two blocks (either ResNet or ConvNext)
             #       - LinearAttention with Groupnormalization (before the attention) and skip connection
             #       - final downsampling
@@ -476,7 +452,7 @@ class FourthModel(nn.Module):
             )
 
         # Central UNet stage.
-        # It consists in:
+        # It consists of:
         #       - block (either ResNet or ConvNext)
         #       - LinearAttention with Groupnormalization (before the attention) and skip connection
         #       - another block 
@@ -490,7 +466,7 @@ class FourthModel(nn.Module):
         for ind, (dim_in, dim_out) in enumerate(reversed(in_out[1:])):
             is_last = ind >= (num_resolutions - 1)
 
-            # An up stage consists in: 
+            # An up stage consists of:
             #       - two blocks (either ResNet or ConvNext)
             #       - LinearAttention with Groupnormalization (before the attention) and skip connection
             #       - final upsampling
