@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class Model(nn.Module):
+class TimestepModel(nn.Module):
     """Basic model for predicting the timestep t of a noisy image.
     This model simply consists in a sequence of downsampling convolutions and then a final linear layer.
     """
