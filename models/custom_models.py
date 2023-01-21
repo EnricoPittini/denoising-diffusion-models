@@ -435,7 +435,8 @@ class UNetResNetSum(nn.Module):
 
 class UNetResNetK2(nn.Module):
     """Basic UNet diffusion model with ResNet layers and positional encoding for the timestep.
-    Similar to ``UNetResNet``, but the kernel size of the first downsampling layer has been reduced to 2x2.
+    Similar to ``UNetResNet``, but the kernel size of the first layer of each down- and upsampling block
+    has been reduced to 2x2.
     """
     def __init__(self, img_shape, device='cpu', res_blocks=3, temp_encoding_initial_channels=10,
                  block_channels=[32, 64, 128, 256, 512]):
@@ -531,7 +532,8 @@ class UNetResNetK2(nn.Module):
 
 class UNetResNetFC(nn.Module):
     """Basic UNet diffusion model with ResNet layers and positional encoding for the timestep.
-    It is ``UNetResNet`` with an additional final convolutional layer.
+    It is ``UNetResNet`` with an additional intermediate convolutional layer before the final one,
+    with half the number of channels in its output compared to its input.
     """
     def __init__(self, img_shape, device='cpu', res_blocks=3, temp_encoding_initial_channels=10,
                  block_channels=[32, 64, 128, 256, 512]):
@@ -551,7 +553,7 @@ class UNetResNetFC(nn.Module):
         self.spatial_encoding_initial_channels = block_channels[0] - temp_encoding_initial_channels
 
         # initial convolution layer
-        self.ci = nn.Conv2d(in_channels=img_depth, out_channels=self.spatial_encoding_initial_channels, kernel_size=3, 
+        self.ci = nn.Conv2d(in_channels=img_depth, out_channels=self.spatial_encoding_initial_channels, kernel_size=3,
                             padding=1, device=device)
 
         # downsampling
@@ -808,7 +810,7 @@ class AttentionBlock(nn.Module):
         return self.to_out(out)
 
 
-class LinearAttentionModel(nn.Module):
+class UNetResNetLinearAttention(nn.Module):
     """UNet diffusion model with ResNet layers, positional encoding for the timestep and linear attention.
     The downsampling is fixed to maxpooling and the upsampling is done by bilinear interpolation.
     Linear attention is used.
@@ -915,10 +917,10 @@ class LinearAttentionModel(nn.Module):
         return x
 
 
-class QuadraticAttentionModel(nn.Module):
+class UNetResNetQuadraticAttention(nn.Module):
     """UNet diffusion model with ResNet layers, positional encoding for the timestep and attention.
     The downsampling is fixed to maxpooling and the upsampling is done by bilinear interpolation.
-    Quadratic attention is used
+    Quadratic attention is used.
     """
     def __init__(self, img_shape, device='cpu', res_blocks=3, temp_encoding_initial_channels=10,
                  block_channels=[32, 64, 128, 256, 512]):
