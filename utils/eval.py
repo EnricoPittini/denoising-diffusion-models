@@ -36,10 +36,10 @@ def _visualize_images(original_image,
     axs[2].set_title('Bilateral filter')
 
     for i, im in enumerate(rec_step):
-        if hasattr(im, "__getitem__"):
-            im=im[-1]
+        #if hasattr(im, "__getitem__"):
+        #    im=im[-1]
         axs[i+3].imshow(im.transpose(1, 2, 0))
-        axs[i+3].set_title(f'step = {step[i]}')
+        axs[i+3].set_title(f'step size = {step[i]}')
 
     for ax in axs:
         ax.set_axis_off()
@@ -69,7 +69,7 @@ def _visualize_images_plotly(original_image,
                                im.transpose(1, 2, 0)[None]
                               ],
                               axis=0)
-        labels.append(f'step = {step[i]}')
+        labels.append(f'step size = {step[i]}')
 
     nrows = 1 + int(np.ceil((len(rec_step)+1)/2))
     ncols = 2
